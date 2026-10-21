@@ -2,13 +2,16 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   buildDeck,
+  buildMatch,
   clamp,
+  DEFAULT_MAX_SKIPS,
   formatClock,
   NEEDLE_MAX,
   NEEDLE_MIN,
   parseCustomSpectrum,
   parseCustomSpectra,
   randomTarget,
+  reducer,
   scoreFor,
   shuffle,
   validateSetup,
@@ -129,6 +132,7 @@ test("setup validation enforces the target points rule", () => {
     custom: [],
     customFirst: true,
     targetScore: null as number | null,
+    maxSkipsPerTeam: 3,
   };
   assert.deepEqual(validateSetup(base), {});
 
@@ -159,6 +163,12 @@ test("setup validation enforces the target points rule", () => {
       ],
     }).teams,
   );
+
+  assert.equal(DEFAULT_MAX_SKIPS, 3);
+  assert.equal(validateSetup({ ...base, maxSkipsPerTeam: 0 }).maxSkipsPerTeam, undefined);
+  assert.ok(validateSetup({ ...base, maxSkipsPerTeam: -1 }).maxSkipsPerTeam);
+  assert.ok(validateSetup({ ...base, maxSkipsPerTeam: 11 }).maxSkipsPerTeam);
+  assert.ok(validateSetup({ ...base, maxSkipsPerTeam: 1.5 }).maxSkipsPerTeam);
 });
 
 test("clock formatting", () => {
@@ -166,4 +176,67 @@ test("clock formatting", () => {
   assert.equal(formatClock(5000), "0:05");
   assert.equal(formatClock(65000), "1:05");
   assert.equal(formatClock(-10), "0:00");
+});
+
+test("a skip deals a new card to the same team and costs one skip", () => {
+  const match = buildMatch(
+    {
+      teams: [
+        { name: "A", color: "#000" },
+        { name: "B", color: "#111" },
+      ],
+      rounds: 2,
+      psychicSeconds: 60,
+      guessSeconds: 45,
+      decks: ["clean"],
+      custom: [],
+      customFirst: true,
+      targetScore: null,
+      maxSkipsPerTeam: 2,
+    },
+    [
+      { left: "a", right: "b" },
+      { left: "c", right: "d" },
+    ],
+  );
+  assert.equal(match.maxSkipsPerTeam, 2);
+  assert.deepEqual(match.skipsUsed, [0, 0]);
+
+  const psychic = reducer(match, { type: "pass" })!;
+  const skipped = reducer(psychic, { type: "skip" })!;
+  assert.equal(skipped.turnIndex, 0, "the turn does not move");
+  assert.equal(skipped.phase, "psychic", "the psychic keeps looking");
+  assert.equal(skipped.cardIndex, 1, "the next card is in play");
+  assert.deepEqual(skipped.skipsUsed, [1, 0]);
+  assert.deepEqual(skipped.teams.map((team) => team.score), [0, 0]);
+
+  // once the budget is gone the same team's skip is a no-op
+  const spent = { ...skipped, skipsUsed: [2, 0] };
+  const refused = reducer(spent, { type: "skip" })!;
+  assert.equal(refused.cardIndex, 1);
+  assert.deepEqual(refused.skipsUsed, [2, 0]);
+});
+
+test("skips are off when the limit is zero", () => {
+  const match = buildMatch(
+    {
+      teams: [
+        { name: "A", color: "#000" },
+        { name: "B", color: "#111" },
+      ],
+      rounds: 1,
+      psychicSeconds: 60,
+      guessSeconds: 45,
+      decks: ["clean"],
+      custom: [],
+      customFirst: true,
+      targetScore: null,
+      maxSkipsPerTeam: 0,
+    },
+    [{ left: "a", right: "b" }],
+  );
+  const psychic = reducer(match, { type: "pass" })!;
+  const skipped = reducer(psychic, { type: "skip" })!;
+  assert.equal(skipped.turnIndex, 0);
+  assert.equal(skipped.cardIndex, 0);
 });

@@ -21,10 +21,12 @@ manifest and service worker also make it installable and cache the app for later
 ## Play
 
 1. **Setup** — teams (name + colour), rounds per team, psychic time and guesser time in
-   seconds, deck (Clean / Spicy / Dirty), optional custom spectra and an optional "first to N points" target.
+   seconds, max skips per team, deck (Clean / Spicy / Dirty), optional custom spectra and an
+   optional "first to N points" target.
 2. **Psychic pass** — the screen hides behind a curtain. Hand the device to the Psychic only.
 3. **Psychic** — sees the spectrum and the target position. The needle is hidden and the
-   meter face is plain, not grey.
+   meter face is plain, not grey. If the card is dead on arrival, **Skip (N)** burns one of
+   that team's skips and deals the next card without moving the turn.
 4. **Guess** — the target is hidden, the needle appears. Drag it (or use ←/→ keys).
 5. **Reveal** — the target zone shows up and points are awarded to the team.
 

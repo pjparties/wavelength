@@ -20,6 +20,10 @@ try {
 
   await app.clickId("setup-settings");
   await app.waitFor(`!!document.querySelector('[data-testid="rounds"]')`);
+  const maxSkipsValue = await app.evaluate(
+    `document.querySelector('[data-testid="max-skips"]')?.value ?? null`,
+  );
+  check("max skips defaults to 3 in the rules", maxSkipsValue === "3", String(maxSkipsValue));
 
   // ---- an empty rounds field means one round ----
   await app.setValueId("rounds", "");
@@ -96,7 +100,7 @@ try {
   await app.clickId("reveal");
   check("reveal awards points", /\+\d/.test(await app.evaluate("document.body.innerText")));
   await app.clickId("next");
-  check("second team takes the turn", (await app.text()).includes("team 2"));
+  check("second team takes the turn", (await app.text()).includes("lannisters"));
 
   await app.clickId("psychic");
   await app.clickId("hide-target");
@@ -107,7 +111,7 @@ try {
   const results = await app.text();
   check("game over screen shows the standings",
     results.includes("game over") || results.includes("wins"), results.slice(0, 120));
-  check("standings list both teams", results.includes("team 1") && results.includes("team 2"));
+  check("standings list both teams", results.includes("starks") && results.includes("lannisters"));
   check("no scoreboard on the game over screen", !results.includes("scoreboard"), results.slice(0, 120));
 
   // ---- deck composition in the settings modal ----
@@ -125,7 +129,7 @@ try {
   await app.clickId("play-again");
   const restarted = await app.text();
   check("play again starts a fresh match",
-    restarted.includes("pass the device to") && restarted.includes("team 1"), restarted.slice(0, 120));
+    restarted.includes("pass the device to") && restarted.includes("starks"), restarted.slice(0, 120));
 
   console.log("\nconsole errors:", app.errors.length ? app.errors : "none");
   if (app.errors.length) process.exitCode = 1;

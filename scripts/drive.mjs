@@ -50,9 +50,10 @@ try {
   const curtain = await app.text();
   check(
     "privacy curtain shown for team 1",
-    curtain.includes("pass the device to") && curtain.includes("team 1"),
+    curtain.includes("pass the device to") && curtain.includes("starks"),
     curtain.slice(0, 120),
   );
+  check("the card button is called Show Card", curtain.includes("show card"), curtain.slice(0, 160));
   await app.shot("03-psychic-curtain");
 
   const curtainCovers = await app.evaluate(`(() => {
@@ -165,7 +166,7 @@ try {
   const nextBody = await app.text();
   check(
     "turn rotates to the next team",
-    nextBody.includes("pass the device to") && nextBody.includes("team 2"),
+    nextBody.includes("pass the device to") && nextBody.includes("lannisters"),
     nextBody.slice(0, 120),
   );
   check("scoreboard keeps the points", /\b[1-5]\b/.test(nextBody));
@@ -203,7 +204,7 @@ try {
   const afterReload = await app.text();
   check(
     "match survives a page reload",
-    afterReload.includes("pass the device to") && afterReload.includes("team 2"),
+    afterReload.includes("pass the device to") && afterReload.includes("lannisters"),
     afterReload.slice(0, 120),
   );
 
@@ -269,6 +270,41 @@ try {
   check("the half spectrum is half of every band",
     atZero.map((b) => b.span).join() === "5,8.5,9" && atTen.map((b) => b.span).join() === "9,8.5,5",
     JSON.stringify([atZero.map((b) => b.span), atTen.map((b) => b.span)]));
+
+  // ---- skip: next to hide target, one budget per team ----
+  const skipUi = await app.evaluate(`(() => {
+    const raw = JSON.parse(localStorage.getItem('wavelength.match.v1'));
+    return {
+      max: raw.maxSkipsPerTeam,
+      used: raw.skipsUsed,
+      text: document.querySelector('[data-testid="skip"]')?.textContent ?? "",
+    };
+  })()`);
+  check("a skip button sits beside hide target with its count", /skip \(3\)/i.test(skipUi.text), skipUi.text);
+  check("the match starts with a full skip budget for every team",
+    skipUi.max === 3 && skipUi.used.join() === "0,0", JSON.stringify(skipUi));
+  check("the pass button is short copy", (await app.text()).includes("hide target & pass"));
+  const cardBefore = await app.textId("spectrum-card");
+  await app.clickId("skip");
+  const afterSkip = await app.evaluate(`(() => {
+    const raw = JSON.parse(localStorage.getItem('wavelength.match.v1'));
+    return {
+      turn: raw.turnIndex,
+      card: raw.cardIndex,
+      used: raw.skipsUsed,
+      phase: raw.phase,
+      score: raw.teams.map((t) => t.score),
+      text: document.querySelector('[data-testid="skip"]')?.textContent ?? "",
+    };
+  })()`);
+  const cardAfter = await app.textId("spectrum-card");
+  check("a skip deals a new card to the same team",
+    afterSkip.turn === 0 && afterSkip.card === 1 && cardAfter !== cardBefore,
+    JSON.stringify([cardBefore.slice(0, 40), cardAfter.slice(0, 40)]));
+  check("the skipped card scores nothing and costs one skip",
+    afterSkip.phase === "psychic" && afterSkip.used.join() === "1,0" &&
+      afterSkip.score.join() === "0,0" && /skip \(2\)/i.test(afterSkip.text),
+    JSON.stringify(afterSkip));
 
   console.log("\nconsole errors:", app.errors.length ? app.errors : "none");
   if (app.errors.length) process.exitCode = 1;

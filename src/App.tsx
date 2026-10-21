@@ -6,6 +6,7 @@ import { playSfx, setSoundEnabled } from "./audio.ts";
 import { BUTTON_ARIA, BUTTON_TEXT } from "./ui-copy.ts";
 import {
   buildMatch,
+  DEFAULT_MAX_SKIPS,
   formatClock,
   reducer,
   scoreFor,
@@ -46,6 +47,9 @@ function loadMatch(): Match | null {
       // matches saved before the two timers existed
       psychicSeconds: parsed.psychicSeconds ?? parsed.turnSeconds ?? 60,
       guessSeconds: parsed.guessSeconds ?? parsed.turnSeconds ?? 45,
+      maxSkipsPerTeam: parsed.maxSkipsPerTeam ?? DEFAULT_MAX_SKIPS,
+      skipsUsed: parsed.skipsUsed ?? parsed.teams.map(() => 0),
+      cardIndex: parsed.cardIndex ?? parsed.turnIndex,
     };
   } catch {
     return null;
@@ -196,9 +200,18 @@ export default function App() {
 
   const handleNext = () => {
     if (!match) return;
-    const nextIndex = match.turnIndex + 1;
-    const reshuffle = match.deck.length > 0 && nextIndex % match.deck.length === 0;
+    const nextCard = match.cardIndex + 1;
+    const reshuffle = match.deck.length > 0 && nextCard % match.deck.length === 0;
     dispatch({ type: "next", deck: reshuffle ? shuffle(match.deck) : undefined });
+    playSfx("click");
+    resetTimer(match.psychicSeconds);
+  };
+
+  const handleSkip = () => {
+    if (!match) return;
+    const nextCard = match.cardIndex + 1;
+    const reshuffle = match.deck.length > 0 && nextCard % match.deck.length === 0;
+    dispatch({ type: "skip", deck: reshuffle ? shuffle(match.deck) : undefined });
     playSfx("click");
     resetTimer(match.psychicSeconds);
   };
@@ -240,11 +253,12 @@ export default function App() {
 
   const teamIndex = turnIndex % match.teams.length;
   const team = match.teams[teamIndex];
-  const card = match.deck[turnIndex % match.deck.length] ?? { left: "—", right: "—" };
+  const card = match.deck[match.cardIndex % match.deck.length] ?? { left: "—", right: "—" };
   const turns = totalTurns(match.teams.length, match.rounds);
   const timedOut = remaining <= 0 && !paused;
   const needleVisible = match.phase === "guess" || match.phase === "reveal";
   const targetVisible = match.phase === "psychic" || match.phase === "reveal";
+  const skipsLeft = match.maxSkipsPerTeam - (match.skipsUsed[teamIndex] ?? 0);
 
   return (
     <div className="paper-texture min-h-dvh bg-paper text-ink">
@@ -325,7 +339,7 @@ export default function App() {
                 if (match) resetTimer(match.psychicSeconds);
               }}
             >
-              I&apos;m the psychic — show the card
+              {BUTTON_TEXT.psychic}
             </button>
           </div>
         ) : (
@@ -387,18 +401,32 @@ export default function App() {
                   <p className="text-sm font-bold uppercase tracking-wide opacity-70">
                     Give your team a clue
                   </p>
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-lg mt-3 w-full"
-                    data-testid="hide-target"
-                    onClick={() => {
-                      playSfx("lock");
-                      dispatch({ type: "guess" });
-                      if (match) resetTimer(match.guessSeconds);
-                    }}
-                  >
-                    {BUTTON_TEXT.hideTarget}
-                  </button>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-lg flex-1"
+                      data-testid="hide-target"
+                      onClick={() => {
+                        playSfx("lock");
+                        dispatch({ type: "guess" });
+                        if (match) resetTimer(match.guessSeconds);
+                      }}
+                    >
+                      {BUTTON_TEXT.hideTarget}
+                    </button>
+                    {match.maxSkipsPerTeam > 0 && (
+                      <button
+                        type="button"
+                        className="btn btn-lg shrink-0"
+                        data-testid="skip"
+                        disabled={skipsLeft <= 0}
+                        onClick={handleSkip}
+                        aria-label={`Skip this card, ${skipsLeft} left for ${team.name}`}
+                      >
+                        {BUTTON_TEXT.skip} ({skipsLeft})
+                      </button>
+                    )}
+                  </div>
                 </>
               )}
 
@@ -627,8 +655,8 @@ export default function App() {
               <div className="flex justify-between">
                 <dt className="opacity-70">Played / left</dt>
                 <dd>
-                  {Math.min(turnIndex + 1, match.deck.length)} /{" "}
-                  {Math.max(0, match.deck.length - turnIndex - 1)}
+                  {Math.min(match.cardIndex + 1, match.deck.length)} /{" "}
+                  {Math.max(0, match.deck.length - match.cardIndex - 1)}
                 </dd>
               </div>
             </dl>

@@ -18,6 +18,9 @@ export const TARGET_MAX = 180;
 export const NEEDLE_MIN = 0;
 export const NEEDLE_MAX = 180;
 
+/** Cards a team may skip per match unless the setup says otherwise. */
+export const DEFAULT_MAX_SKIPS = 3;
+
 export const ZONE_CORE = 5;
 export const ZONE_INNER = 13.5;
 export const ZONE_OUTER = 22.5;
@@ -31,6 +34,18 @@ export const TEAM_PALETTE = [
   "#2E7D8C",
   "#A63E64",
   "#5C6BC0",
+];
+
+/** Default names for the first eight teams, in the order they are added. */
+export const TEAM_NAMES = [
+  "Starks",
+  "Lannisters",
+  "Targaryens",
+  "Baratheons",
+  "Tyrells",
+  "Greyjoys",
+  "Night\’s Watch",
+  "The Kingsguards",
 ];
 
 export function clamp(value: number, min: number, max: number): number {
@@ -119,11 +134,14 @@ export function buildMatch(config: SetupConfig, spectra: Spectrum[]): Match {
     deckIds: config.decks,
     targetScore: config.targetScore,
     turnIndex: 0,
+    cardIndex: 0,
     targetAngle: randomTarget(),
     needleAngle: 90,
     phase: "psychic_pass",
     lastPoints: null,
     winner: null,
+    maxSkipsPerTeam: config.maxSkipsPerTeam,
+    skipsUsed: config.teams.map(() => 0),
   };
 }
 
@@ -164,7 +182,22 @@ export function reducer(state: Match | null, action: Action): Match | null {
       return {
         ...state,
         turnIndex: nextIndex,
+        cardIndex: state.cardIndex + 1,
         phase: "psychic_pass",
+        targetAngle: randomTarget(),
+        needleAngle: 90,
+        lastPoints: null,
+        deck: action.deck ?? state.deck,
+      };
+    }
+    case "skip": {
+      if (state.phase !== "psychic") return state;
+      const index = state.turnIndex % state.teams.length;
+      if ((state.skipsUsed[index] ?? 0) >= state.maxSkipsPerTeam) return state;
+      return {
+        ...state,
+        cardIndex: state.cardIndex + 1,
+        skipsUsed: state.skipsUsed.map((used, i) => (i === index ? used + 1 : used)),
         targetAngle: randomTarget(),
         needleAngle: 90,
         lastPoints: null,
@@ -197,6 +230,9 @@ export function validateSetup(config: SetupConfig): SetupErrors {
   }
   if (config.decks.length === 0 && config.custom.length === 0) {
     errors.decks = "Pick a deck or add custom spectra";
+  }
+  if (!Number.isInteger(config.maxSkipsPerTeam) || config.maxSkipsPerTeam < 0 || config.maxSkipsPerTeam > 10) {
+    errors.maxSkipsPerTeam = "Max skips must be between 0 and 10";
   }
   if (config.targetScore !== null) {
     const max = config.rounds * 5;

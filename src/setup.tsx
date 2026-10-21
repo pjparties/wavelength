@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
+  DEFAULT_MAX_SKIPS,
   parseCustomSpectra,
+  TEAM_NAMES,
   TEAM_PALETTE,
   validateSetup,
 } from "./game.ts";
@@ -56,8 +58,8 @@ export default function SetupScreen({
   onEasyModeChange,
 }: SetupScreenProps) {
   const [teams, setTeams] = useState([
-    { name: "Team 1", color: TEAM_PALETTE[0] },
-    { name: "Team 2", color: TEAM_PALETTE[1] },
+    { name: TEAM_NAMES[0], color: TEAM_PALETTE[0] },
+    { name: TEAM_NAMES[1], color: TEAM_PALETTE[1] },
   ]);
   const [roundsText, setRoundsText] = useState("5");
   const [psychicSeconds, setPsychicSeconds] = useState(60);
@@ -67,6 +69,7 @@ export default function SetupScreen({
   const [customText, setCustomText] = useState("");
   const [customFirst, setCustomFirst] = useState(true);
   const [targetScore, setTargetScore] = useState<string>("");
+  const [maxSkips, setMaxSkips] = useState(DEFAULT_MAX_SKIPS);
   const [showErrors, setShowErrors] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -83,6 +86,7 @@ export default function SetupScreen({
     custom: useCustom ? custom.items : [],
     customFirst,
     targetScore: targetScore.trim() === "" ? null : Number(targetScore),
+    maxSkipsPerTeam: maxSkips,
   };
 
   const errors: SetupErrors = validateSetup(config);
@@ -146,7 +150,10 @@ export default function SetupScreen({
             onClick={() =>
               setTeams((prev) => [
                 ...prev,
-                { name: `Team ${prev.length + 1}`, color: TEAM_PALETTE[prev.length % TEAM_PALETTE.length] },
+                {
+                  name: TEAM_NAMES[prev.length] ?? `Team ${prev.length + 1}`,
+                  color: TEAM_PALETTE[prev.length % TEAM_PALETTE.length],
+                },
               ])
             }
           >
@@ -322,6 +329,24 @@ export default function SetupScreen({
                   onChange={(event) => setTargetScore(event.target.value)}
                 />
               </Field>
+              <div className="mt-3">
+                <Field
+                  label="Max skips per team"
+                  hint="Each team may skip this many cards. 0 turns skips off."
+                  error={showErrors ? errors.maxSkipsPerTeam : undefined}
+                >
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={10}
+                    className={inputClass}
+                    data-testid="max-skips"
+                    value={maxSkips}
+                    onChange={(event) => setMaxSkips(Number(event.target.value))}
+                  />
+                </Field>
+              </div>
             </section>
 
             <section className="mb-5">

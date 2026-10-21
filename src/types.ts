@@ -28,11 +28,13 @@ export type SetupConfig = {
   custom: Spectrum[];
   customFirst: boolean;
   targetScore: number | null;
+  /** How many cards each team may skip. 0 turns the skip button off. */
+  maxSkipsPerTeam: number;
 };
 
 export type SetupErrors = Partial<
   Record<
-    "teams" | "rounds" | "psychicSeconds" | "guessSeconds" | "decks" | "targetScore",
+    "teams" | "rounds" | "psychicSeconds" | "guessSeconds" | "decks" | "targetScore" | "maxSkipsPerTeam",
     string
   >
 >;
@@ -52,11 +54,16 @@ export type Match = {
   deckIds: string[];
   targetScore: number | null;
   turnIndex: number;
+  /** Index into the deck for the card in play; a skip advances it without the turn. */
+  cardIndex: number;
   targetAngle: number;
   needleAngle: number;
   phase: Phase;
   lastPoints: number | null;
   winner: string | null;
+  maxSkipsPerTeam: number;
+  /** Skips spent, indexed by team. */
+  skipsUsed: number[];
 };
 
 export type Action =
@@ -66,4 +73,5 @@ export type Action =
   | { type: "needle"; angle: number }
   | { type: "reveal"; points: number }
   | { type: "next"; deck?: Spectrum[] }
+  | { type: "skip"; deck?: Spectrum[] }
   | { type: "abort" };
