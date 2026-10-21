@@ -1,0 +1,62 @@
+/** Shared domain types. The UI, the game rules and the deck providers all speak these. */
+
+export type Spectrum = { left: string; right: string };
+
+export type TeamConfig = { name: string; color: string };
+
+/**
+ * A selectable source of questions. Built-in decks and backend/DB decks share
+ * this shape, so adding a database-backed deck is a new provider, not a new UI.
+ */
+export type DeckSource = {
+  id: string;
+  label: string;
+  /** Card count, when it is known without loading. */
+  size?: number;
+  load: () => Promise<Spectrum[]>;
+};
+
+export type SetupConfig = {
+  teams: TeamConfig[];
+  rounds: number;
+  turnSeconds: number;
+  /** Ids of the selected deck sources. */
+  decks: string[];
+  custom: Spectrum[];
+  customFirst: boolean;
+  targetScore: number | null;
+};
+
+export type SetupErrors = Partial<
+  Record<"teams" | "rounds" | "turnSeconds" | "decks" | "targetScore", string>
+>;
+
+export type Phase = "psychic_pass" | "psychic" | "guess" | "reveal" | "gameover";
+
+export type Team = { name: string; color: string; score: number };
+
+export type Match = {
+  teams: Team[];
+  rounds: number;
+  turnSeconds: number;
+  deck: Spectrum[];
+  customCount: number;
+  /** Which deck sources produced this deck. */
+  deckIds: string[];
+  targetScore: number | null;
+  turnIndex: number;
+  targetAngle: number;
+  needleAngle: number;
+  phase: Phase;
+  lastPoints: number | null;
+  winner: string | null;
+};
+
+export type Action =
+  | { type: "start"; match: Match }
+  | { type: "pass" }
+  | { type: "guess" }
+  | { type: "needle"; angle: number }
+  | { type: "reveal"; points: number }
+  | { type: "next"; deck?: Spectrum[] }
+  | { type: "abort" };

@@ -1,0 +1,28 @@
+name: ci
+
+on: [push, pull_request]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Types and lint
+        run: npm run check
+      - name: Unit tests
+        run: npm test
+      - name: Build the single file
+        run: npm run build
+      - name: Browser suite (flow, visuals, scoring)
+        run: npm run verify
+        env:
+          CHROME_PATH: google-chrome
+      - name: Backend deck source
+        run: npm run verify:remote
+        env:
+          CHROME_PATH: google-chrome

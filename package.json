@@ -1,0 +1,33 @@
+{
+  "name": "wavelength-offline",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "test": "node --test src/game.test.ts",
+    "check": "tsc -b && oxlint src",
+    "mock-api": "node scripts/mock-api.mjs",
+    "verify": "npm run build && node scripts/drive.mjs ./shots && node scripts/visual.mjs ./shots && node scripts/logic.mjs && node scripts/scoring.mjs",
+    "verify:remote": "node scripts/remote.mjs"
+  },
+  "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "oxlint": "^1.88.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.4",
+    "vite-plugin-singlefile": "^2.3.4"
+  }
+}
