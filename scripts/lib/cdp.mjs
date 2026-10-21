@@ -197,6 +197,12 @@ export async function launch({
   // innerText reflects CSS text-transform, so compare lower-cased on both sides.
   const text = async () => (await evaluate("document.body.innerText")).toLowerCase();
 
+  // The text of one element, by data-testid.
+  const textId = async (testid) =>
+    (await evaluate(
+      `(document.querySelector('[data-testid=${JSON.stringify(testid)}]')?.innerText ?? "")`,
+    )).toLowerCase();
+
   // Poll a DOM condition. Use this instead of a fixed sleep after an action:
   // React renders on the next tick, so an attribute read right after a
   // synthetic event returns the pre-render value.
@@ -369,6 +375,7 @@ export async function launch({
     send,
     evaluate,
     text,
+    textId,
     waitFor,
     click,
     clickId,

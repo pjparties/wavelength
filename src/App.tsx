@@ -463,30 +463,32 @@ export default function App() {
               )}
             </section>
 
-            <section className="card p-4">
-              <h2 className="mb-2 text-xs font-bold uppercase tracking-widest opacity-60">
-                Scoreboard
-              </h2>
-              <div className="flex flex-col gap-1 lg:flex-row lg:gap-2">
-                {match.teams.map((entry, index) => (
-                  <div
-                    key={entry.name}
-                    className={`flex flex-1 items-center justify-between rounded-md px-2 py-1.5 ${
-                      index === teamIndex ? "border-2 border-line" : "border-2 border-transparent"
-                    }`}
-                  >
-                    <span className="flex items-center gap-2 font-bold">
-                      <span
-                        className="h-3 w-3 rounded-full border border-line"
-                        style={{ background: entry.color }}
-                      />
-                      {entry.name}
-                    </span>
-                    <span className="mono-num font-black">{entry.score}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
+            {match.phase !== "gameover" && (
+              <section className="card p-4">
+                <h2 className="mb-2 text-xs font-bold uppercase tracking-widest opacity-60">
+                  Scoreboard
+                </h2>
+                <div className="flex flex-col gap-1 lg:flex-row lg:gap-2">
+                  {match.teams.map((entry, index) => (
+                    <div
+                      key={entry.name}
+                      className={`flex flex-1 items-center justify-between rounded-md px-2 py-1.5 ${
+                        index === teamIndex ? "border-2 border-line" : "border-2 border-transparent"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2 font-bold">
+                        <span
+                          className="h-3 w-3 rounded-full border border-line"
+                          style={{ background: entry.color }}
+                        />
+                        {entry.name}
+                      </span>
+                      <span className="mono-num font-black">{entry.score}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
           </>
         )}
       </main>

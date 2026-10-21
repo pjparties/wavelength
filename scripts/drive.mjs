@@ -34,6 +34,8 @@ try {
   );
   check("custom text box stays hidden until the option is checked", boxHidden === true);
   check("custom spectra are a deck option", (await app.text()).includes("custom spectra"));
+  const deckSummary = await app.textId("deck-summary");
+  check("the deck summary hides custom until it is picked", !deckSummary.includes("custom"), deckSummary);
   await app.clickId("deck-custom");
   await app.setValueId("custom-spectra", "Total Cringe : Pure Masterpiece");
   await app.clickId("add-team");
@@ -41,6 +43,8 @@ try {
   await app.shot("02-setup-custom-and-team");
 
   check("custom spectrum parsed and previewed", (await app.text()).includes("total cringe"));
+  check("the deck summary counts the custom spectra",
+    (await app.textId("deck-summary")).includes("1 custom"), await app.textId("deck-summary"));
 
   await app.clickId("start-match");
   const curtain = await app.text();

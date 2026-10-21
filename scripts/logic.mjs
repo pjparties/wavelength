@@ -18,6 +18,11 @@ try {
   );
   check("setup screen has no horizontal overflow", setupOverflow <= 0, String(setupOverflow));
 
+  // ---- an empty rounds field means one round ----
+  await app.setValueId("rounds", "");
+  check("an empty rounds field implies one round",
+    (await app.text()).includes("(1 round x 5)"), (await app.text()).slice(0, 160));
+
   // ---- validation: target points > rounds * 5 is rejected ----
   await app.setValueId("rounds", "1"); // rounds per team = 1
   await app.setValueId("target-score", "6"); // 6 > 1 * 5
@@ -99,6 +104,7 @@ try {
   check("game over screen shows the standings",
     results.includes("game over") || results.includes("wins"), results.slice(0, 120));
   check("standings list both teams", results.includes("team 1") && results.includes("team 2"));
+  check("no scoreboard on the game over screen", !results.includes("scoreboard"), results.slice(0, 120));
 
   // ---- deck composition in the settings modal ----
   const deckInfo = await app.evaluate(`(() => {

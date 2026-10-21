@@ -54,7 +54,7 @@ export default function SetupScreen({
     { name: "Team 1", color: TEAM_PALETTE[0] },
     { name: "Team 2", color: TEAM_PALETTE[1] },
   ]);
-  const [rounds, setRounds] = useState(5);
+  const [roundsText, setRoundsText] = useState("5");
   const [psychicSeconds, setPsychicSeconds] = useState(60);
   const [guessSeconds, setGuessSeconds] = useState(45);
   const [decks, setDecks] = useState<string[]>(["sfw"]);
@@ -65,6 +65,8 @@ export default function SetupScreen({
   const [showErrors, setShowErrors] = useState(false);
 
   const custom = useMemo(() => parseCustomSpectra(customText), [customText]);
+  // An empty (or cleared) rounds field means one round.
+  const rounds = Math.max(1, Number(roundsText) || 1);
 
   const config: SetupConfig = {
     teams,
@@ -79,6 +81,11 @@ export default function SetupScreen({
 
   const errors: SetupErrors = validateSetup(config);
   const errorList = Object.values(errors).filter(Boolean) as string[];
+
+  const deckLabels = [
+    ...decks.map((id) => sources.find((source) => source.id === id)?.label ?? id),
+    ...(useCustom && custom.items.length > 0 ? [`${custom.items.length} custom`] : []),
+  ];
 
   const setTeam = (index: number, patch: Partial<(typeof teams)[number]>) => {
     setTeams((prev) => prev.map((team, i) => (i === index ? { ...team, ...patch } : team)));
@@ -166,9 +173,126 @@ export default function SetupScreen({
       </section>
 
       <section className="card mb-4 p-4">
+        <h2 className="mb-3 text-lg font-black uppercase tracking-wide">Decks</h2>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {sources.map((source) => {
+            const on = decks.includes(source.id);
+            return (
+              <button
+                key={source.id}
+                type="button"
+                data-testid={`deck-${source.id}`}
+                onClick={() => toggleDeck(source.id)}
+                className={`btn ${on ? "btn-primary" : ""}`}
+              >
+                {on ? "✓ " : ""}
+                {source.label}
+                {source.size !== undefined ? ` (${source.size})` : ""}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            data-testid="deck-custom"
+            onClick={() => setUseCustom((value) => !value)}
+            className={`btn ${useCustom ? "btn-primary" : ""}`}
+          >
+            {useCustom ? "✓ " : ""}Custom spectra
+          </button>
+        </div>
+        {errors.decks && showErrors && (
+          <p className="mt-1 text-xs font-bold text-danger">{errors.decks}</p>
+        )}
+
+        {useCustom && (
+          <div className="mt-3">
+            <p className="text-xs opacity-70">
+              One per line: <code className="mono-num">Total Cringe : Pure Masterpiece</code>
+              <br />
+              The left pole is always 0, the right pole always 100.
+            </p>
+            <textarea
+              value={customText}
+              data-testid="custom-spectra"
+              onChange={(event) => setCustomText(event.target.value)}
+              rows={4}
+              spellCheck={false}
+              className={`${inputClass} mono-num mt-2 resize-y`}
+              placeholder={"Total Cringe : Pure Masterpiece\nRainy Day : Beach Day"}
+            />
+            {custom.errors.length > 0 && (
+              <ul className="mt-2 flex flex-col gap-1 text-xs font-bold text-danger">
+                {custom.errors.map((error) => (
+                  <li key={error.line}>
+                    Line {error.line}: {error.message}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {custom.items.length > 0 && (
+              <div className="mt-2 flex flex-col gap-1 text-xs">
+                {custom.items.map((item, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <span className="mono-num shrink-0 rounded bg-surface-2 px-1.5 py-0.5">
+                      0 → 100
+                    </span>
+                    <span className="font-semibold">{item.left}</span>
+                    <span className="opacity-50">:</span>
+                    <span className="font-semibold">{item.right}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                data-testid="custom-first"
+                onClick={() => setCustomFirst(true)}
+                className={`btn ${customFirst ? "btn-primary" : ""}`}
+              >
+                {customFirst ? "✓ " : ""}Play custom first
+              </button>
+              <button
+                type="button"
+                data-testid="custom-shuffle"
+                onClick={() => setCustomFirst(false)}
+                className={`btn ${!customFirst ? "btn-primary" : ""}`}
+              >
+                {!customFirst ? "✓ " : ""}Shuffle into deck
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="card mb-4 p-4">
+        <h2 className="mb-3 text-lg font-black uppercase tracking-wide">Rules</h2>
+        <Field
+          label="Target points (optional)"
+          hint={`First team to reach it wins. Max ${rounds * 5} points (${rounds} round${rounds === 1 ? "" : "s"} x 5).`}
+          error={showErrors ? errors.targetScore : undefined}
+        >
+          <input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            className={inputClass}
+            data-testid="target-score"
+            value={targetScore}
+            placeholder="no limit"
+            onChange={(event) => setTargetScore(event.target.value)}
+          />
+        </Field>
+      </section>
+
+      <section className="card mb-4 p-4">
         <h2 className="mb-3 text-lg font-black uppercase tracking-wide">Match setup</h2>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Rounds per team" error={showErrors ? errors.rounds : undefined}>
+          <Field
+            label="Rounds per team"
+            hint="Empty means 1 round."
+            error={showErrors ? errors.rounds : undefined}
+          >
             <input
               type="number"
               inputMode="numeric"
@@ -176,8 +300,8 @@ export default function SetupScreen({
               max={20}
               className={inputClass}
               data-testid="rounds"
-              value={rounds}
-              onChange={(event) => setRounds(Number(event.target.value))}
+              value={roundsText}
+              onChange={(event) => setRoundsText(event.target.value)}
             />
           </Field>
           <Field label="Psychic time (seconds)" error={showErrors ? errors.psychicSeconds : undefined}>
@@ -205,120 +329,6 @@ export default function SetupScreen({
             />
           </Field>
         </div>
-
-        <div className="mt-4">
-          <span className="mb-1 block text-xs font-bold uppercase tracking-widest opacity-70">
-            Decks
-          </span>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {sources.map((source) => {
-              const on = decks.includes(source.id);
-              return (
-                <button
-                  key={source.id}
-                  type="button"
-                  data-testid={`deck-${source.id}`}
-                  onClick={() => toggleDeck(source.id)}
-                  className={`btn ${on ? "btn-primary" : ""}`}
-                >
-                  {on ? "✓ " : ""}
-                  {source.label}
-                  {source.size !== undefined ? ` (${source.size})` : ""}
-                </button>
-              );
-            })}
-            <button
-              type="button"
-              data-testid="deck-custom"
-              onClick={() => setUseCustom((value) => !value)}
-              className={`btn ${useCustom ? "btn-primary" : ""}`}
-            >
-              {useCustom ? "✓ " : ""}Custom spectra
-            </button>
-          </div>
-          {errors.decks && showErrors && (
-            <p className="mt-1 text-xs font-bold text-danger">{errors.decks}</p>
-          )}
-
-          {useCustom && (
-            <div className="mt-3">
-              <p className="text-xs opacity-70">
-                One per line: <code className="mono-num">Total Cringe : Pure Masterpiece</code>
-                <br />
-                The left pole is always 0, the right pole always 100.
-              </p>
-              <textarea
-                value={customText}
-                data-testid="custom-spectra"
-                onChange={(event) => setCustomText(event.target.value)}
-                rows={4}
-                spellCheck={false}
-                className={`${inputClass} mono-num mt-2 resize-y`}
-                placeholder={"Total Cringe : Pure Masterpiece\nRainy Day : Beach Day"}
-              />
-              {custom.errors.length > 0 && (
-                <ul className="mt-2 flex flex-col gap-1 text-xs font-bold text-danger">
-                  {custom.errors.map((error) => (
-                    <li key={error.line}>
-                      Line {error.line}: {error.message}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {custom.items.length > 0 && (
-                <div className="mt-2 flex flex-col gap-1 text-xs">
-                  {custom.items.map((item, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <span className="mono-num shrink-0 rounded bg-surface-2 px-1.5 py-0.5">
-                        0 → 100
-                      </span>
-                      <span className="font-semibold">{item.left}</span>
-                      <span className="opacity-50">:</span>
-                      <span className="font-semibold">{item.right}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                <button
-                  type="button"
-                  data-testid="custom-first"
-                  onClick={() => setCustomFirst(true)}
-                  className={`btn ${customFirst ? "btn-primary" : ""}`}
-                >
-                  {customFirst ? "✓ " : ""}Play custom first
-                </button>
-                <button
-                  type="button"
-                  data-testid="custom-shuffle"
-                  onClick={() => setCustomFirst(false)}
-                  className={`btn ${!customFirst ? "btn-primary" : ""}`}
-                >
-                  {!customFirst ? "✓ " : ""}Shuffle into deck
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-4">
-          <Field
-            label="Target points (optional)"
-            hint={`First team to reach it wins. Max ${rounds * 5} points (${rounds} rounds x 5).`}
-            error={showErrors ? errors.targetScore : undefined}
-          >
-            <input
-              type="number"
-              inputMode="numeric"
-              min={1}
-              className={inputClass}
-              data-testid="target-score"
-              value={targetScore}
-              placeholder="no limit"
-              onChange={(event) => setTargetScore(event.target.value)}
-            />
-          </Field>
-        </div>
       </section>
 
       {showErrors && errorList.length > 0 && (
@@ -339,11 +349,8 @@ export default function SetupScreen({
         {busy ? "Loading questions…" : "Start match"}
       </button>
       {error && <p className="mt-2 text-center text-sm font-bold text-danger">{error}</p>}
-      <p className="mt-3 text-center text-xs opacity-60">
-        Deck: {useCustom ? custom.items.length : 0} custom +{" "}
-        {decks
-          .map((id) => sources.find((source) => source.id === id)?.label ?? id)
-          .join(" ")}
+      <p className="mt-3 text-center text-xs opacity-60" data-testid="deck-summary">
+        Deck: {deckLabels.join(" + ") || "none"}
       </p>
     </div>
   );
