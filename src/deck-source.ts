@@ -96,7 +96,7 @@ export function defaultDeckSources(): DeckSource[] {
   return [
     builtinSource("clean", "Clean", CLEAN_SPECTRUMS),
     builtinSource("spicy", "Spicy", SPICY_SPECTRUMS),
-    builtinSource("dirty", "Dirty (NSFW)", DIRTY_SPECTRUMS),
+    builtinSource("dirty", "Dirty", DIRTY_SPECTRUMS),
   ];
 }
 
