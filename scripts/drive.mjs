@@ -245,7 +245,14 @@ try {
     }
     return app.evaluate(`(() => {
       const svg = document.querySelector('svg[aria-label="Spectrum dial"]');
-      return [...svg.querySelectorAll('[data-target] path')].map((p) => getComputedStyle(p).fill);
+      // viewBox centre + the arc endpoint pair of each wedge give its angle span.
+      const arc = (x, y) => (Math.atan2(200 - y, 200 - x) * 180) / Math.PI;
+      return [...svg.querySelectorAll('[data-target] path')].map((p) => {
+        const n = p.getAttribute('d').match(/-?\\d+(?:\\.\\d+)?/g).map(Number);
+        const from = arc(n[2], n[3]);
+        const to = arc(n[n.length - 2], n[n.length - 1]);
+        return { fill: getComputedStyle(p).fill, from: +from.toFixed(2), to: +to.toFixed(2), span: +(to - from).toFixed(2) };
+      });
     })()`);
   };
   const atZero = await bandsAt(0);
@@ -253,8 +260,15 @@ try {
   check("a target at 0 shows half the spectrum", atZero.length === 3, JSON.stringify(atZero));
   check("a target at 10 shows half the spectrum", atTen.length === 3, JSON.stringify(atTen));
   check("the half spectrum keeps the bullseye band",
-    atZero[0] === "rgb(116, 119, 71)" && atTen[2] === "rgb(116, 119, 71)",
+    atZero[0].fill === "rgb(116, 119, 71)" && atTen[2].fill === "rgb(116, 119, 71)",
     JSON.stringify([atZero, atTen]));
+  // the edge cuts the 10 degree core in half: 5 degrees visible, starting at 0 / ending at 180
+  check("the edge splits the bullseye exactly in half",
+    atZero[0].from === 0 && atZero[0].span === 5 && atTen[2].to === 180 && atTen[2].span === 5,
+    JSON.stringify([atZero[0], atTen[2]]));
+  check("the half spectrum is half of every band",
+    atZero.map((b) => b.span).join() === "5,8.5,9" && atTen.map((b) => b.span).join() === "9,8.5,5",
+    JSON.stringify([atZero.map((b) => b.span), atTen.map((b) => b.span)]));
 
   console.log("\nconsole errors:", app.errors.length ? app.errors : "none");
   if (app.errors.length) process.exitCode = 1;
