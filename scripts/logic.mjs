@@ -18,6 +18,9 @@ try {
   );
   check("setup screen has no horizontal overflow", setupOverflow <= 0, String(setupOverflow));
 
+  await app.clickId("setup-settings");
+  await app.waitFor(`!!document.querySelector('[data-testid="rounds"]')`);
+
   // ---- an empty rounds field means one round ----
   await app.setValueId("rounds", "");
   check("an empty rounds field implies one round",
@@ -47,6 +50,7 @@ try {
   await app.clickId("custom-first");
   await app.setValueId("psychic-seconds", "20");
   await app.setValueId("guess-seconds", "30");
+  await app.clickId("close-setup-settings");
   await app.clickId("start-match");
   check("valid setup starts the match", (await app.text()).includes("pass the device to"));
 

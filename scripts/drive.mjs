@@ -173,10 +173,11 @@ try {
 
   // settings modal
   await app.clickId("settings");
+  await app.waitFor(`!!document.querySelector('[data-testid="abort"]')`);
   const settingsBody = await app.text();
   check(
     "settings modal opens with card pool stats",
-    settingsBody.includes("card pool") && settingsBody.includes("sfw deck"),
+    settingsBody.includes("card pool") && settingsBody.includes("plain deck"),
     settingsBody.slice(0, 120),
   );
   await app.shot("09-settings-modal");
@@ -192,9 +193,9 @@ try {
       body,
     };
   })()`);
-  check("no theme picker is offered", themeState.themeButtons === 0 && themeState.themeAttribute === null, JSON.stringify(themeState));
+  check("no theme picker is offered", themeState.themeButtons === 0 && themeState.themeAttribute === "diwali", JSON.stringify(themeState));
   check("the diwali ascii backdrop is on the page", (themeState.diwali ?? "").includes("data:image/svg+xml"), String(themeState.diwali));
-  check("the app uses the warm earth paper", themeState.body === "rgb(237, 227, 212)", themeState.body);
+  check("the app uses the warm ivory paper", themeState.body === "rgb(244, 239, 229)", themeState.body);
   await app.shot("10-diwali-theme");
 
   // persistence across reload

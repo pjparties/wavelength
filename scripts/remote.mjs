@@ -31,6 +31,7 @@ try {
   await app.clickId("deck-sfw");
   await app.clickId("deck-community");
   await app.clickId("start-match");
+  await app.waitFor(`document.body.innerText.toLowerCase().includes('pass the device to')`);
   const started = await app.text();
   check("the match started from the remote deck", started.includes("pass the device to"));
 

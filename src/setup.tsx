@@ -296,6 +296,7 @@ export default function SetupScreen({
               <button
                 type="button"
                 className="btn btn-sm"
+                data-testid="close-setup-settings"
                 aria-label={BUTTON_ARIA.closeSettings}
                 onClick={() => setSettingsOpen(false)}
               >
