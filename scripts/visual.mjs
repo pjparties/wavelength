@@ -42,7 +42,7 @@ try {
     };
   })()`);
   console.log("styles:", JSON.stringify(styles, null, 1));
-  check("page uses the warm ivory background", styles.bodyBg === "rgb(248, 243, 231)", styles.bodyBg);
+  check("page uses the diwali cream background", styles.bodyBg === "rgb(251, 239, 217)", styles.bodyBg);
   check("buttons have a soft shadow", styles.btnShadow.includes("0.1") && styles.btnShadow.includes("2px 8px"), styles.btnShadow);
   check("buttons have a thin border", styles.btnBorder.includes("1px"), styles.btnBorder);
   check("cards have a thin border and soft shadow", styles.cardBorder.includes("1px") && styles.cardShadow.includes("5px 18px"), styles.cardShadow);
@@ -54,18 +54,18 @@ try {
   // ---------- pixel audit of the setup screen ----------
   const setupShot = await app.shot("v1-setup");
   const setupPixels = await app.pixels(setupShot, {
-    targets: ["#f8f3e7", "#fffcf5", "#30271f", "#c85b35"],
+    targets: ["#fbefd9", "#fff9ec", "#3a1620", "#d9531e"],
   });
   console.log("setup screen dominant colors:", JSON.stringify(setupPixels.top));
-  const paperPx = setupPixels.near["#f8f3e7"] + setupPixels.near["#fffcf5"];
-  const inkPx = setupPixels.near["#30271f"];
-  const accentPx = setupPixels.near["#c85b35"];
+  const paperPx = setupPixels.near["#fbefd9"] + setupPixels.near["#fff9ec"];
+  const inkPx = setupPixels.near["#3a1620"];
+  const accentPx = setupPixels.near["#d9531e"];
   check("cream paper fills the page", paperPx > setupPixels.total * 0.4, paperPx + "/" + setupPixels.total);
   check("ink text is rendered", inkPx > 2000, String(inkPx));
   check("accent colour (burnt orange) is rendered", accentPx > 500, String(accentPx));
 
-  const btnPixels = await app.pixels(setupShot, { selector: ".btn-primary", targets: ["#c85b35"] });
-  check("primary button face is the accent colour", btnPixels.near["#c85b35"] > btnPixels.total * 0.6, JSON.stringify(btnPixels.top.slice(0, 3)));
+  const btnPixels = await app.pixels(setupShot, { selector: ".btn-primary", targets: ["#d9531e"] });
+  check("primary button face is the accent colour", btnPixels.near["#d9531e"] > btnPixels.total * 0.6, JSON.stringify(btnPixels.top.slice(0, 3)));
 
   // ---------- geometry audit of the dial ----------
   await app.clickId("start-match");
@@ -97,7 +97,7 @@ try {
   check("hard mode has no scale labels or ticks", dial.texts.length === 0 && dial.ticks === 0, JSON.stringify(dial.texts));
   check("needle is absent in the psychic phase", dial.hasNeedle === false);
   check("the psychic meter face is plain, not grey",
-    dial.face === "plain" && dial.faceFill === "rgb(255, 252, 245)", JSON.stringify([dial.face, dial.faceFill]));
+    dial.face === "plain" && dial.faceFill === "rgb(255, 249, 236)", JSON.stringify([dial.face, dial.faceFill]));
   check("target renders the three scoring bands",
     new Set(dial.zoneFills.map((f) => f)).size >= 3, JSON.stringify(dial.zoneFills));
   check("dial fits the phone width", dial.box.w <= 430 && dial.box.w > 300, JSON.stringify(dial.box));
@@ -132,20 +132,20 @@ try {
   const revealShot = await app.shot("v2-reveal");
   const dialPixels = await app.pixels(revealShot, {
     selector: "svg[aria-label='Spectrum dial']",
-    targets: ["#747747", "#e6a52e", "#c85b35", "#d6cdbf"],
+    targets: ["#e8a317", "#e26a2c", "#c23b63", "#e8d8bc"],
   });
   console.log("reveal dial colours:", JSON.stringify(dialPixels.top));
   const zoneShare = (hex) => dialPixels.near[hex] / dialPixels.total;
-  check("olive bullseye is painted on the dial", zoneShare("#747747") > 0.01, zoneShare("#747747").toFixed(3));
-  check("marigold inner zone is painted on the dial", zoneShare("#e6a52e") > 0.01, zoneShare("#e6a52e").toFixed(3));
-  check("terracotta outer band is painted on the dial", zoneShare("#c85b35") > 0.01, zoneShare("#c85b35").toFixed(3));
-  check("warm neutral miss is painted on the dial", zoneShare("#d6cdbf") > 0.05, zoneShare("#d6cdbf").toFixed(3));
+  check("marigold bullseye is painted on the dial", zoneShare("#e8a317") > 0.01, zoneShare("#e8a317").toFixed(3));
+  check("saffron inner zone is painted on the dial", zoneShare("#e26a2c") > 0.01, zoneShare("#e26a2c").toFixed(3));
+  check("rani pink outer band is painted on the dial", zoneShare("#c23b63") > 0.01, zoneShare("#c23b63").toFixed(3));
+  check("warm cream miss is painted on the dial", zoneShare("#e8d8bc") > 0.05, zoneShare("#e8d8bc").toFixed(3));
   check("dial has strong internal contrast", dialPixels.contrast > 120, String(dialPixels.contrast));
 
   const revealFace = await app.evaluate(
     `document.querySelector('[data-face]')?.getAttribute('data-face') ?? null`,
   );
-  check("the reveal face shows the grey miss zone", revealFace === "miss", String(revealFace));
+  check("the reveal face shows the miss zone", revealFace === "miss", String(revealFace));
 
   console.log("\nconsole errors:", app.errors.length ? app.errors : "none");
   if (app.errors.length) process.exitCode = 1;

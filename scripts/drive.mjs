@@ -196,7 +196,7 @@ try {
   })()`);
   check("no theme picker is offered", themeState.themeButtons === 0 && themeState.themeAttribute === "diwali", JSON.stringify(themeState));
   check("the diwali ascii backdrop is on the page", (themeState.diwali ?? "").includes("data:image/svg+xml"), String(themeState.diwali));
-  check("the app uses the warm ivory paper", themeState.body === "rgb(251, 239, 217)", themeState.body);
+  check("the app uses the diwali cream paper", themeState.body === "rgb(251, 239, 217)", themeState.body);
   await app.shot("10-diwali-theme");
 
   // persistence across reload
