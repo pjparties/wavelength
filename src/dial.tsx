@@ -27,11 +27,19 @@ export type DialProps = {
   needle: number | null;
   /** Secret target in arc degrees. null renders no target zones. */
   target: number | null;
+  /** Paint the face plain instead of the grey miss zone (psychic view). */
+  plainFace?: boolean;
   interactive?: boolean;
   onChange?: (angle: number) => void;
 };
 
-export default function Dial({ needle, target, interactive = false, onChange }: DialProps) {
+export default function Dial({
+  needle,
+  target,
+  plainFace = false,
+  interactive = false,
+  onChange,
+}: DialProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragging = useRef(false);
 
@@ -94,6 +102,8 @@ export default function Dial({ needle, target, interactive = false, onChange }: 
         [target + ZONE_INNER, target + ZONE_OUTER, "var(--zone-1)"],
       ] as [number, number, string][]);
 
+  const missFace = target !== null && !plainFace;
+
   return (
     <svg
       ref={svgRef}
@@ -101,6 +111,7 @@ export default function Dial({ needle, target, interactive = false, onChange }: 
       className="w-full touch-none select-none"
       role="img"
       aria-label="Spectrum dial"
+      data-testid="dial"
       tabIndex={interactive ? 0 : -1}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -109,9 +120,14 @@ export default function Dial({ needle, target, interactive = false, onChange }: 
       onKeyDown={handleKeyDown}
       style={{ cursor: interactive ? "grab" : "default" }}
     >
+      <path
+        d={HALF_CIRCLE}
+        fill={missFace ? "var(--zone-0)" : "var(--surface)"}
+        data-face={missFace ? "miss" : "plain"}
+      />
+
       {target !== null && (
         <g data-target="true">
-          <path d={HALF_CIRCLE} fill="var(--zone-0)" />
           {bands.map(([from, to, fill]) => {
             const lo = Math.max(0, from);
             const hi = Math.min(180, to);
@@ -120,8 +136,6 @@ export default function Dial({ needle, target, interactive = false, onChange }: 
           })}
         </g>
       )}
-
-      {target === null && <path d={HALF_CIRCLE} fill="var(--surface-2)" />}
 
       <path d={HALF_CIRCLE} fill="none" stroke="var(--line)" strokeWidth={4} />
       <line x1={CX - R - 8} y1={CY} x2={CX + R + 8} y2={CY} stroke="var(--line)" strokeWidth={4} strokeLinecap="round" />

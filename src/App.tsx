@@ -2,6 +2,7 @@ import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import Dial from "./dial.tsx";
 import SetupScreen from "./setup.tsx";
 import { defaultDeckSources, loadDeck } from "./deck-source.ts";
+import { DIWALI_BACKGROUND } from "./diwali.ts";
 import { playSfx, setSoundEnabled } from "./audio.ts";
 import {
   buildMatch,
@@ -15,7 +16,6 @@ import {
 import type { Match, SetupConfig } from "./types.ts";
 
 const MATCH_KEY = "wavelength.match.v1";
-const THEME_KEY = "wavelength.theme.v1";
 const SOUND_KEY = "wavelength.sound.v1";
 
 function safeGet(key: string): string | null {
@@ -38,9 +38,14 @@ function loadMatch(): Match | null {
   try {
     const raw = safeGet(MATCH_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Match;
+    const parsed = JSON.parse(raw) as Match & { turnSeconds?: number };
     if (!parsed?.teams?.length || !parsed.deck?.length) return null;
-    return parsed;
+    return {
+      ...parsed,
+      // matches saved before the two timers existed
+      psychicSeconds: parsed.psychicSeconds ?? parsed.turnSeconds ?? 60,
+      guessSeconds: parsed.guessSeconds ?? parsed.turnSeconds ?? 45,
+    };
   } catch {
     return null;
   }
@@ -62,7 +67,6 @@ const POINTS_COLOR: Record<number, string> = {
 
 export default function App() {
   const [match, dispatch] = useReducer(reducer, null, loadMatch);
-  const [theme, setTheme] = useState(() => safeGet(THEME_KEY) ?? "vintage");
   const [soundOn, setSoundOn] = useState(() => safeGet(SOUND_KEY) !== "off");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [remaining, setRemaining] = useState(60_000);
@@ -70,16 +74,12 @@ export default function App() {
   const deadlineRef = useRef(0);
   const [lastConfig, setLastConfig] = useState<SetupConfig | null>(null);
   const lastTick = useRef<number | null>(null);
+  const lastTickSecond = useRef<number | null>(null);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
   const sources = useMemo(() => defaultDeckSources(), []);
 
   const turnIndex = match?.turnIndex ?? 0;
-
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    safeSet(THEME_KEY, theme);
-  }, [theme]);
 
   useEffect(() => {
     setSoundEnabled(soundOn);
@@ -102,7 +102,14 @@ export default function App() {
   useEffect(() => {
     if (!inMatch || paused) return;
     const id = setInterval(() => {
-      setRemaining(Math.max(0, deadlineRef.current - Date.now()));
+      const left = Math.max(0, deadlineRef.current - Date.now());
+      setRemaining(left);
+      // tick once per second in the last ten seconds
+      const seconds = Math.ceil(left / 1000);
+      if (seconds >= 1 && seconds <= 10 && lastTickSecond.current !== seconds) {
+        lastTickSecond.current = seconds;
+        playSfx("tick");
+      }
     }, 200);
     return () => clearInterval(id);
   }, [inMatch, paused]);
@@ -113,6 +120,7 @@ export default function App() {
     setRemaining(ms);
     setPaused(false);
     lastTick.current = null;
+    lastTickSecond.current = null;
   };
 
   const togglePause = () => {
@@ -134,7 +142,7 @@ export default function App() {
       setLastConfig(config);
       playSfx("lock");
       dispatch({ type: "start", match: buildMatch(config, spectra) });
-      resetTimer(config.turnSeconds);
+      resetTimer(config.psychicSeconds);
     } catch (error) {
       setStartError(error instanceof Error ? error.message : "Could not load the questions");
     } finally {
@@ -154,7 +162,7 @@ export default function App() {
     const points = scoreFor(match.needleAngle, match.targetAngle);
     dispatch({ type: "reveal", points });
     playSfx(points === 0 ? "miss" : "reveal");
-    resetTimer(match.turnSeconds);
+    resetTimer(match.psychicSeconds);
   };
 
   const handleNext = () => {
@@ -163,7 +171,7 @@ export default function App() {
     const reshuffle = match.deck.length > 0 && nextIndex % match.deck.length === 0;
     dispatch({ type: "next", deck: reshuffle ? shuffle(match.deck) : undefined });
     playSfx("click");
-    resetTimer(match.turnSeconds);
+    resetTimer(match.psychicSeconds);
   };
 
   const chips = useMemo(() => {
@@ -184,10 +192,14 @@ export default function App() {
   if (!match) {
     return (
       <div className="paper-texture min-h-dvh bg-paper text-ink">
+        <div
+          className="diwali-bg"
+          aria-hidden="true"
+          data-testid="diwali-bg"
+          style={{ backgroundImage: DIWALI_BACKGROUND }}
+        />
         <SetupScreen
           onStart={handleStart}
-          theme={theme}
-          onTheme={setTheme}
           sources={sources}
           busy={starting}
           error={startError}
@@ -206,6 +218,12 @@ export default function App() {
 
   return (
     <div className="paper-texture min-h-dvh bg-paper text-ink">
+      <div
+        className="diwali-bg"
+        aria-hidden="true"
+        data-testid="diwali-bg"
+        style={{ backgroundImage: DIWALI_BACKGROUND }}
+      />
       <header className="sticky top-0 z-30 border-b-2 border-line bg-paper/95 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-3 py-2">
           <div className="flex min-w-0 items-center gap-2">
@@ -229,6 +247,7 @@ export default function App() {
             <button
               type="button"
               className="btn btn-sm"
+              data-testid="toggle-timer"
               onClick={togglePause}
               aria-label={paused ? "Resume timer" : "Pause timer"}
             >
@@ -237,6 +256,7 @@ export default function App() {
             <button
               type="button"
               className="btn btn-sm"
+              data-testid="settings"
               onClick={() => setSettingsOpen(true)}
               aria-label="Settings"
             >
@@ -246,7 +266,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl px-4 pb-16 pt-4">
+      <main className="relative z-10 mx-auto w-full max-w-3xl px-4 pb-16 pt-4">
         {match.phase === "psychic_pass" ? (
           <div className="card p-6 text-center">
             <p className="text-xs font-bold uppercase tracking-widest opacity-60">
@@ -262,10 +282,11 @@ export default function App() {
             <button
               type="button"
               className="btn btn-primary btn-lg mt-5 w-full max-w-xs"
+              data-testid="psychic"
               onClick={() => {
                 playSfx("click");
                 dispatch({ type: "pass" });
-                if (match) resetTimer(match.turnSeconds);
+                if (match) resetTimer(match.psychicSeconds);
               }}
             >
               I&apos;m the psychic — show the card
@@ -303,6 +324,7 @@ export default function App() {
               <Dial
                 needle={needleVisible ? match.needleAngle : null}
                 target={targetVisible ? match.targetAngle : null}
+                plainFace={match.phase === "psychic"}
                 interactive={match.phase === "guess" && !timedOut}
                 onChange={handleNeedle}
               />
@@ -332,10 +354,11 @@ export default function App() {
                   <button
                     type="button"
                     className="btn btn-primary btn-lg mt-3 w-full"
+                    data-testid="hide-target"
                     onClick={() => {
                       playSfx("lock");
                       dispatch({ type: "guess" });
-                      if (match) resetTimer(match.turnSeconds);
+                      if (match) resetTimer(match.guessSeconds);
                     }}
                   >
                     Hide target — pass to guessers
@@ -351,6 +374,7 @@ export default function App() {
                   <button
                     type="button"
                     className="btn btn-primary btn-lg mt-3 w-full"
+                    data-testid="reveal"
                     onClick={handleReveal}
                   >
                     Lock in &amp; reveal
@@ -370,7 +394,12 @@ export default function App() {
                   <p className="mt-1 text-sm opacity-70">
                     Target was at {(toScale(match.targetAngle)).toFixed(1)} / 10
                   </p>
-                  <button type="button" className="btn btn-primary btn-lg mt-3 w-full" onClick={handleNext}>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-lg mt-3 w-full"
+                    data-testid="next"
+                    onClick={handleNext}
+                  >
                     {match.winner || turnIndex + 1 >= turns ? "See results" : "Next round"}
                   </button>
                 </>
@@ -405,6 +434,7 @@ export default function App() {
                       <button
                         type="button"
                         className="btn btn-primary"
+                        data-testid="play-again"
                         onClick={() => handleStart(lastConfig)}
                       >
                         Play again
@@ -413,6 +443,7 @@ export default function App() {
                     <button
                       type="button"
                       className={`btn ${lastConfig ? "" : "btn-primary"}`}
+                      data-testid="new-setup"
                       onClick={() => dispatch({ type: "abort" })}
                     >
                       New setup
@@ -426,11 +457,11 @@ export default function App() {
               <h2 className="mb-2 text-xs font-bold uppercase tracking-widest opacity-60">
                 Scoreboard
               </h2>
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1 lg:flex-row lg:gap-2">
                 {match.teams.map((entry, index) => (
                   <div
                     key={entry.name}
-                    className={`flex items-center justify-between rounded-md px-2 py-1.5 ${
+                    className={`flex flex-1 items-center justify-between rounded-md px-2 py-1.5 ${
                       index === teamIndex ? "border-2 border-line" : "border-2 border-transparent"
                     }`}
                   >
@@ -458,31 +489,17 @@ export default function App() {
           <div className="card w-full max-w-md p-5" onClick={(event) => event.stopPropagation()}>
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-xl font-black uppercase tracking-wide">Settings</h2>
-              <button type="button" className="btn btn-sm" onClick={() => setSettingsOpen(false)}>
+              <button
+                type="button"
+                className="btn btn-sm"
+                data-testid="close-settings"
+                onClick={() => setSettingsOpen(false)}
+              >
                 ✕
               </button>
             </div>
 
-            <h3 className="mb-2 text-xs font-bold uppercase tracking-widest opacity-60">Theme</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: "vintage", label: "Vintage Paper" },
-                { id: "swiss", label: "Swiss Minimalist" },
-                { id: "earth", label: "Warm Earth" },
-                { id: "synthwave", label: "Synthwave" },
-              ].map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`btn btn-sm ${theme === item.id ? "btn-primary" : ""}`}
-                  onClick={() => setTheme(item.id)}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-
-            <h3 className="mb-2 mt-4 text-xs font-bold uppercase tracking-widest opacity-60">Sound</h3>
+            <h3 className="mb-2 text-xs font-bold uppercase tracking-widest opacity-60">Sound</h3>
             <button
               type="button"
               className={`btn btn-sm w-full ${soundOn ? "btn-primary" : ""}`}
@@ -521,6 +538,7 @@ export default function App() {
             <button
               type="button"
               className="btn btn-danger mt-5 w-full"
+              data-testid="abort"
               onClick={() => {
                 setSettingsOpen(false);
                 dispatch({ type: "abort" });

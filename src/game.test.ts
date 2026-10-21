@@ -4,6 +4,8 @@ import {
   buildDeck,
   clamp,
   formatClock,
+  NEEDLE_MAX,
+  NEEDLE_MIN,
   parseCustomSpectrum,
   parseCustomSpectra,
   randomTarget,
@@ -23,12 +25,18 @@ test("score zones: 5 / 3 / 1 / 0", () => {
   assert.equal(scoreFor(50, 90), 0);
 });
 
-test("a miss is reachable at both ends of the arc", () => {
-  // target never lands closer than 21 degrees to an end, so the needle must be able
-  // to swing past the arc or a 0 point score would be impossible.
-  assert.equal(scoreFor(-25, 21), 0);
-  assert.equal(scoreFor(205, 159), 0);
+test("a miss is reachable from both ends of the scale", () => {
+  // the needle stops at 0 and 10 and the target never lands closer than 21
+  // degrees to an end, so the far end of the scale is always a miss.
+  assert.equal(scoreFor(0, 159), 0);
+  assert.equal(scoreFor(180, 21), 0);
   assert.ok(scoreFor(0, 21) > 0);
+});
+
+test("the needle cannot leave the 0-10 scale", () => {
+  assert.equal(clamp(-25, NEEDLE_MIN, NEEDLE_MAX), 0);
+  assert.equal(clamp(205, NEEDLE_MIN, NEEDLE_MAX), 180);
+  assert.equal(clamp(90, NEEDLE_MIN, NEEDLE_MAX), 90);
 });
 
 test("targets stay inside the 21-159 degree band", () => {
@@ -52,7 +60,7 @@ test("shuffle keeps every card", () => {
 });
 
 test("custom spectra parse from the documented format", () => {
-  const parsed = parseCustomSpectrum("0: Total Cringe ↔ 100: Pure Masterpiece");
+  const parsed = parseCustomSpectrum("Total Cringe : Pure Masterpiece");
   assert.ok(parsed.ok);
   assert.deepEqual(parsed.ok && parsed.spectrum, {
     left: "Total Cringe",
@@ -60,27 +68,27 @@ test("custom spectra parse from the documented format", () => {
   });
 });
 
-test("custom spectra accept alternative separators", () => {
-  for (const line of [
-    "0: Cold | 100: Hot",
-    "0: Cold -> 100: Hot",
-    "0: Cold vs 100: Hot",
-    "20: Meh — 80: Great",
-  ]) {
-    assert.equal(parseCustomSpectrum(line).ok, true, line);
+test("custom spectra split on the first colon and ignore spacing", () => {
+  for (const line of ["Cold : Hot", "Cold:Hot", "  Cold  :  Hot  "]) {
+    const parsed = parseCustomSpectrum(line);
+    assert.equal(parsed.ok, true, line);
+    assert.deepEqual(parsed.ok && parsed.spectrum, { left: "Cold", right: "Hot" }, line);
   }
+  const spaced = parseCustomSpectrum("Rainy Day : Beach Day");
+  assert.deepEqual(spaced.ok && spaced.spectrum, {
+    left: "Rainy Day",
+    right: "Beach Day",
+  });
 });
 
 test("bad custom spectra are rejected with a message", () => {
-  assert.equal(parseCustomSpectrum("Total Cringe ↔ Pure Masterpiece").ok, false);
-  assert.equal(parseCustomSpectrum("0: Cold ↔ 900: Hot").ok, false);
-  assert.equal(parseCustomSpectrum("0: Cold ↔ 100: ").ok, false);
+  assert.equal(parseCustomSpectrum("Total Cringe Pure Masterpiece").ok, false);
+  assert.equal(parseCustomSpectrum("Total Cringe : ").ok, false);
+  assert.equal(parseCustomSpectrum(" : Pure Masterpiece").ok, false);
 });
 
 test("parsing keeps good lines and reports bad ones by line number", () => {
-  const { items, errors } = parseCustomSpectra(
-    "0: A ↔ 100: B\n\nbroken line\n0: C ↔ 100: D",
-  );
+  const { items, errors } = parseCustomSpectra("A : B\n\nbroken line\nC : D");
   assert.equal(items.length, 2);
   assert.equal(errors.length, 1);
   assert.equal(errors[0].line, 3);
@@ -102,7 +110,8 @@ test("setup validation enforces the target points rule", () => {
       { name: "B", color: "#111" },
     ],
     rounds: 4,
-    turnSeconds: 60,
+    psychicSeconds: 60,
+    guessSeconds: 45,
     decks: ["sfw"],
     custom: [],
     customFirst: true,
@@ -118,7 +127,8 @@ test("setup validation enforces the target points rule", () => {
 
   assert.ok(validateSetup({ ...base, teams: [base.teams[0]] }).teams);
   assert.ok(validateSetup({ ...base, rounds: 0 }).rounds);
-  assert.ok(validateSetup({ ...base, turnSeconds: 5 }).turnSeconds);
+  assert.ok(validateSetup({ ...base, psychicSeconds: 5 }).psychicSeconds);
+  assert.ok(validateSetup({ ...base, guessSeconds: 5 }).guessSeconds);
   assert.ok(
     validateSetup({ ...base, decks: [] }).decks,
   );

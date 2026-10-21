@@ -1,40 +1,6 @@
 @import "tailwindcss";
 
 :root {
-  --paper: #F7F3E9;
-  --surface: #FFFDF7;
-  --surface-2: #EFE8D8;
-  --ink: #1E1E1E;
-  --ink-soft: #6B6355;
-  --line: #1E1E1E;
-  --accent: #C8553D;
-  --accent-ink: #FFFDF7;
-  --danger: #B3261E;
-  --zone-5: #2F5DA8;
-  --zone-3: #E8B93B;
-  --zone-1: #C2503C;
-  --zone-0: #B9B3A6;
-  --shadow: #1E1E1E;
-}
-
-[data-theme="swiss"] {
-  --paper: #FFFFFF;
-  --surface: #FFFFFF;
-  --surface-2: #F2F2F2;
-  --ink: #111111;
-  --ink-soft: #6E6E6E;
-  --line: #111111;
-  --accent: #E10600;
-  --accent-ink: #FFFFFF;
-  --danger: #E10600;
-  --zone-5: #0B4EA2;
-  --zone-3: #F2C200;
-  --zone-1: #E10600;
-  --zone-0: #C8C8C8;
-  --shadow: #111111;
-}
-
-[data-theme="earth"] {
   --paper: #EDE3D4;
   --surface: #F7F0E3;
   --surface-2: #E2D5BE;
@@ -49,23 +15,6 @@
   --zone-1: #A2542B;
   --zone-0: #B5A88F;
   --shadow: #2B2118;
-}
-
-[data-theme="synthwave"] {
-  --paper: #1B1033;
-  --surface: #241547;
-  --surface-2: #2E1B5E;
-  --ink: #F2E9FF;
-  --ink-soft: #A78BD6;
-  --line: #F2E9FF;
-  --accent: #FF2E88;
-  --accent-ink: #1B1033;
-  --danger: #FF4D6D;
-  --zone-5: #00E5FF;
-  --zone-3: #FFD166;
-  --zone-1: #FF2E88;
-  --zone-0: #4A3B7A;
-  --shadow: #FF2E88;
 }
 
 @theme inline {
@@ -186,10 +135,14 @@
     mix-blend-mode: multiply;
   }
 
-  /* dark theme: lighten instead of multiply, and stay faint */
-  [data-theme="synthwave"] .paper-texture::after {
-    mix-blend-mode: screen;
-    opacity: 0.07;
+  /* ASCII diwali backdrop: a tiled SVG, so it stays sharp at any zoom */
+  .diwali-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.4;
+    background-repeat: repeat;
   }
 
   .title {

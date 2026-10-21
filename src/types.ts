@@ -19,7 +19,10 @@ export type DeckSource = {
 export type SetupConfig = {
   teams: TeamConfig[];
   rounds: number;
-  turnSeconds: number;
+  /** Seconds the psychic gets to think of a clue. */
+  psychicSeconds: number;
+  /** Seconds the guessing team gets to agree on an answer. */
+  guessSeconds: number;
   /** Ids of the selected deck sources. */
   decks: string[];
   custom: Spectrum[];
@@ -28,7 +31,10 @@ export type SetupConfig = {
 };
 
 export type SetupErrors = Partial<
-  Record<"teams" | "rounds" | "turnSeconds" | "decks" | "targetScore", string>
+  Record<
+    "teams" | "rounds" | "psychicSeconds" | "guessSeconds" | "decks" | "targetScore",
+    string
+  >
 >;
 
 export type Phase = "psychic_pass" | "psychic" | "guess" | "reveal" | "gameover";
@@ -38,7 +44,8 @@ export type Team = { name: string; color: string; score: number };
 export type Match = {
   teams: Team[];
   rounds: number;
-  turnSeconds: number;
+  psychicSeconds: number;
+  guessSeconds: number;
   deck: Spectrum[];
   customCount: number;
   /** Which deck sources produced this deck. */

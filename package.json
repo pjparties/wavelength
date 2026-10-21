@@ -9,10 +9,11 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "node --test src/game.test.ts",
-    "check": "tsc -b && oxlint src",
+    "check": "tsc -b && oxlint",
     "mock-api": "node scripts/mock-api.mjs",
     "verify": "npm run build && node scripts/drive.mjs ./shots && node scripts/visual.mjs ./shots && node scripts/logic.mjs && node scripts/scoring.mjs",
-    "verify:remote": "node scripts/remote.mjs"
+    "verify:remote": "node scripts/remote.mjs",
+    "ci": "npm run check && npm test && npm run verify && npm run verify:remote"
   },
   "dependencies": {
     "react": "^19.3.1",

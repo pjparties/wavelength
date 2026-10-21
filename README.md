@@ -2,7 +2,8 @@
 
 A single-file, offline Wavelength game for 2–8 teams on one phone or tablet.
 The Psychic peeks at the spectrum and the secret target, the team slides the needle,
-and the target zone reveals itself: **5** blue bullseye, **3** yellow, **1** red, **0** grey.
+and the target zone reveals itself: **5** green bullseye, **3** ochre, **1** burnt orange, **0** grey.
+The needle never leaves the 0–10 scale.
 
 ## Run it
 
@@ -18,27 +19,31 @@ phone, AirDrop it, open it in a browser, play.
 
 ## Play
 
-1. **Setup** — teams (name + colour), rounds per team, seconds per turn, deck (SFW / NSFW),
-   optional custom spectra and an optional "first to N points" target.
+1. **Setup** — teams (name + colour), rounds per team, psychic time and guesser time in
+   seconds, deck (SFW / NSFW), optional custom spectra and an optional "first to N points" target.
 2. **Psychic pass** — the screen hides behind a curtain. Hand the device to the Psychic only.
-3. **Psychic** — sees the spectrum and the target position. The needle is hidden.
+3. **Psychic** — sees the spectrum and the target position. The needle is hidden and the
+   meter face is plain, not grey.
 4. **Guess** — the target is hidden, the needle appears. Drag it (or use ←/→ keys).
 5. **Reveal** — the target zone shows up and points are awarded to the team.
 
-Turns rotate team by team. The turn timer sits top right with a pause button; the match
-survives a page reload. The ⚙ button switches theme (Vintage Paper, Swiss Minimalist,
-Warm Earth, Synthwave), shows the card pool stats and aborts the match.
+Turns rotate team by team. The turn timer sits top right with a pause button and ticks
+in the last ten seconds. The match survives a page reload. The ⚙ button shows the card pool
+stats, the sound switch and aborts the match.
+
+The look is fixed: one Warm Earth theme (cream paper, ink borders, offset retro buttons,
+paper grain) with an ASCII diwali backdrop.
 
 ## Custom spectra
 
-One per line, in the setup screen:
+Tick **Add my own spectra** in the setup screen to open the text box, then one per line:
 
 ```
-0: Total Cringe ↔ 100: Pure Masterpiece
-0: Rainy Day ↔ 100: Beach Day
+Total Cringe : Pure Masterpiece
+Rainy Day : Beach Day
 ```
 
-`↔`, `->`, `|`, `vs` and `—` all work as separators. End values must be 0–100.
+The left pole is always 0 and the right pole always 100, so only the words are typed.
 Custom spectra either play first or shuffle into the deck.
 
 ## Layout
@@ -52,8 +57,9 @@ Custom spectra either play first or shuffle into the deck.
 | `src/types.ts` | shared domain types (`Spectrum`, `SetupConfig`, `Match`, `DeckSource`) |
 | `src/deck-source.ts` | where questions come from: built-in decks and backend decks |
 | `src/decks.ts` | SFW (140) and NSFW (70) spectra |
-| `src/audio.ts` | Web Audio click/lock/reveal/miss sounds |
-| `src/theme.css` | Tailwind v4 tokens, 4 themes, paper grain, retro buttons |
+| `src/audio.ts` | Web Audio click/lock/reveal/miss/tick sounds |
+| `src/diwali.ts` | the ASCII diwali backdrop, as a tiled SVG |
+| `src/theme.css` | Tailwind v4 tokens, the Warm Earth theme, paper grain, retro buttons |
 
 ## Questions from a backend
 
@@ -77,6 +83,16 @@ database behind an admin CRUD for questions plugs in the same way — `remoteSou
 `?api=`, the app stays fully offline; a backend that is down shows an error and never
 blocks the built-in decks.
 
+What a real backend still needs on top of that seam:
+
+| Need | Where it plugs in |
+| --- | --- |
+| more decks than one | `defaultDeckSources()` — list them from `GET /decks` instead of hard-coding them |
+| login / users | `DeckSource.load()` — send the token, and add a screen for it |
+| admin CRUD for questions | a new endpoint; the admin UI is a new screen, the deck reads through `DeckSource` |
+| custom spectra saved per user | `POST /spectra` next to `GET /spectra` |
+| the match itself on a server | `src/game.ts` is a pure reducer, so it can move to the backend unchanged |
+
 Users and accounts would need an auth layer on top of that; the match state itself is
 transport-agnostic and lives in `src/game.ts`.
 
@@ -84,10 +100,11 @@ transport-agnostic and lives in `src/game.ts`.
 
 ```bash
 npm test           # node --test, no test framework needed
-npm run check      # types + lint
-npm run verify     # builds, then drives the built file in Chrome: flow, visuals, scoring
+npm run check      # types + lint (whole project)
+npm run verify     # builds, then drives the built file in Chrome: flow, visuals, logic, scoring
 npm run verify:remote  # drives the backend deck source against the mock API
+npm run ci         # everything above, in order - this is what CI runs
 ```
 
 `npm run verify` needs Google Chrome installed; it writes screenshots to `./shots`.
-CI runs all of it on every push (`.github/workflows/ci.yml`).
+CI runs `npm run ci` on every push (`.github/workflows/ci.yml`).

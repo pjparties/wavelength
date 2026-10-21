@@ -1,4 +1,4 @@
-export type Sfx = 'click' | 'lock' | 'reveal' | 'miss'
+export type Sfx = 'click' | 'lock' | 'reveal' | 'miss' | 'tick'
 
 const MASTER = 0.2
 const EPS = 0.0001
@@ -94,6 +94,11 @@ function play(ac: AudioContext, name: Sfx): void {
     case 'miss':
       noise(ac, t, 0.08, 0.25, 400)
       tone(ac, t, 140, 0.18, 'sine', 0.6, 0.004)
+      break
+    case 'tick':
+      // countdown tick: dry and short, so ten of them stay out of the way
+      noise(ac, t, 0.008, 0.12, 6000)
+      tone(ac, t, 1800, 0.025, 'square', 0.18, 0.001)
       break
   }
 }

@@ -9,20 +9,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
       - run: npm ci
-      - name: Types and lint
-        run: npm run check
-      - name: Unit tests
-        run: npm test
-      - name: Build the single file
-        run: npm run build
-      - name: Browser suite (flow, visuals, scoring)
-        run: npm run verify
-        env:
-          CHROME_PATH: google-chrome
-      - name: Backend deck source
-        run: npm run verify:remote
+      # types + lint, unit tests, single-file build, browser suite, backend deck
+      - name: Full pipeline
+        run: npm run ci
         env:
           CHROME_PATH: google-chrome

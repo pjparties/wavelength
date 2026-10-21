@@ -13,9 +13,9 @@ export type { Action, Match, SetupConfig, SetupErrors, Spectrum, TeamConfig };
 export const ARC_DEGREES = 180;
 export const TARGET_MIN = 21;
 export const TARGET_MAX = 159;
-/** The needle may swing a little past the arc ends, otherwise the grey miss zone is unreachable. */
-export const NEEDLE_MIN = -25;
-export const NEEDLE_MAX = 205;
+/** The needle stays on the scale: it may not go below 0 or above 10. */
+export const NEEDLE_MIN = 0;
+export const NEEDLE_MAX = 180;
 
 export const ZONE_CORE = 4.5;
 export const ZONE_INNER = 13.5;
@@ -64,26 +64,25 @@ export function shuffle<T>(items: T[]): T[] {
   return out;
 }
 
-const CUSTOM_RE =
-  /^\s*(\d{1,3})\s*:\s*(.+?)\s*(?:↔|->|=>|\||—|–|vs\.?)\s*(\d{1,3})\s*:\s*(.+?)\s*$/i;
-
 export type ParsedCustom =
   | { ok: true; spectrum: Spectrum }
   | { ok: false; error: string };
 
+/**
+ * A custom spectrum is written as "Left pole : Right pole". The left end is
+ * always 0 and the right end always 100, so there is nothing to type for them.
+ */
 export function parseCustomSpectrum(line: string): ParsedCustom {
-  const match = CUSTOM_RE.exec(line);
-  if (!match) return { ok: false, error: 'Use "0: Left pole ↔ 100: Right pole"' };
-  const [, leftValue, left, rightValue, right] = match;
-  const leftEnd = Number(leftValue);
-  const rightEnd = Number(rightValue);
-  if (leftEnd < 0 || leftEnd > 100 || rightEnd < 0 || rightEnd > 100) {
-    return { ok: false, error: "End values must be whole numbers from 0 to 100" };
+  const separator = line.indexOf(":");
+  if (separator === -1) {
+    return { ok: false, error: 'Use "Left pole : Right pole"' };
   }
-  if (!left.trim() || !right.trim()) {
+  const left = line.slice(0, separator).trim();
+  const right = line.slice(separator + 1).trim();
+  if (!left || !right) {
     return { ok: false, error: "Both poles need a word" };
   }
-  return { ok: true, spectrum: { left: left.trim(), right: right.trim() } };
+  return { ok: true, spectrum: { left, right } };
 }
 
 export function parseCustomSpectra(text: string): {
@@ -112,7 +111,8 @@ export function buildMatch(config: SetupConfig, spectra: Spectrum[]): Match {
   return {
     teams: config.teams.map((team) => ({ ...team, score: 0 })),
     rounds: config.rounds,
-    turnSeconds: config.turnSeconds,
+    psychicSeconds: config.psychicSeconds,
+    guessSeconds: config.guessSeconds,
     deck: buildDeck(spectra, config.custom, config.customFirst),
     customCount: config.custom.length,
     deckIds: config.decks,
@@ -185,12 +185,14 @@ export function validateSetup(config: SetupConfig): SetupErrors {
   if (!Number.isInteger(config.rounds) || config.rounds < 1 || config.rounds > 20) {
     errors.rounds = "Rounds per team must be between 1 and 20";
   }
-  if (
-    !Number.isInteger(config.turnSeconds) ||
-    config.turnSeconds < 15 ||
-    config.turnSeconds > 300
-  ) {
-    errors.turnSeconds = "Turn length must be between 15 and 300 seconds";
+  for (const [key, label] of [
+    ["psychicSeconds", "Psychic time"],
+    ["guessSeconds", "Guesser time"],
+  ] as const) {
+    const value = config[key];
+    if (!Number.isInteger(value) || value < 15 || value > 300) {
+      errors[key] = `${label} must be between 15 and 300 seconds`;
+    }
   }
   if (config.decks.length === 0 && config.custom.length === 0) {
     errors.decks = "Pick a deck or add custom spectra";

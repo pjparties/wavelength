@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
-  buildDeck,
   parseCustomSpectra,
   TEAM_PALETTE,
   validateSetup,
@@ -11,8 +10,6 @@ import type { DeckSource } from "./types.ts";
 
 export type SetupScreenProps = {
   onStart: (config: SetupConfig) => void | Promise<void>;
-  theme: string;
-  onTheme: (theme: string) => void;
   /** Decks the app can offer: built-in and any configured backend. */
   sources: DeckSource[];
   /** True while the questions are being loaded. */
@@ -20,13 +17,6 @@ export type SetupScreenProps = {
   /** Message from a failed load. */
   error?: string | null;
 };
-
-const THEMES = [
-  { id: "vintage", label: "Vintage Paper" },
-  { id: "swiss", label: "Swiss Minimalist" },
-  { id: "earth", label: "Warm Earth" },
-  { id: "synthwave", label: "Synthwave" },
-];
 
 function Field({
   label,
@@ -56,8 +46,6 @@ const inputClass =
 
 export default function SetupScreen({
   onStart,
-  theme,
-  onTheme,
   sources,
   busy = false,
   error = null,
@@ -67,8 +55,10 @@ export default function SetupScreen({
     { name: "Team 2", color: TEAM_PALETTE[1] },
   ]);
   const [rounds, setRounds] = useState(5);
-  const [turnSeconds, setTurnSeconds] = useState(60);
+  const [psychicSeconds, setPsychicSeconds] = useState(60);
+  const [guessSeconds, setGuessSeconds] = useState(45);
   const [decks, setDecks] = useState<string[]>(["sfw"]);
+  const [useCustom, setUseCustom] = useState(false);
   const [customText, setCustomText] = useState("");
   const [customFirst, setCustomFirst] = useState(true);
   const [targetScore, setTargetScore] = useState<string>("");
@@ -79,9 +69,10 @@ export default function SetupScreen({
   const config: SetupConfig = {
     teams,
     rounds,
-    turnSeconds,
+    psychicSeconds,
+    guessSeconds,
     decks,
-    custom: custom.items,
+    custom: useCustom ? custom.items : [],
     customFirst,
     targetScore: targetScore.trim() === "" ? null : Number(targetScore),
   };
@@ -112,7 +103,7 @@ export default function SetupScreen({
   };
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 pb-24 pt-6">
+    <div className="relative z-10 mx-auto w-full max-w-2xl px-4 pb-24 pt-6">
       <header className="mb-6 text-center">
         <h1 className="title text-5xl sm:text-6xl">WAVELENGTH</h1>
         <p className="mt-2 text-sm font-semibold uppercase tracking-[0.3em] opacity-60">
@@ -126,6 +117,7 @@ export default function SetupScreen({
           <button
             type="button"
             className="btn btn-sm"
+            data-testid="add-team"
             disabled={teams.length >= 8}
             onClick={() =>
               setTeams((prev) => [
@@ -150,6 +142,7 @@ export default function SetupScreen({
               />
               <input
                 className={inputClass}
+                data-testid={`team-name-${index}`}
                 value={team.name}
                 maxLength={24}
                 onChange={(event) => setTeam(index, { name: event.target.value })}
@@ -182,19 +175,33 @@ export default function SetupScreen({
               min={1}
               max={20}
               className={inputClass}
+              data-testid="rounds"
               value={rounds}
               onChange={(event) => setRounds(Number(event.target.value))}
             />
           </Field>
-          <Field label="Seconds per turn" error={showErrors ? errors.turnSeconds : undefined}>
+          <Field label="Psychic time (seconds)" error={showErrors ? errors.psychicSeconds : undefined}>
             <input
               type="number"
               inputMode="numeric"
               min={15}
               max={300}
               className={inputClass}
-              value={turnSeconds}
-              onChange={(event) => setTurnSeconds(Number(event.target.value))}
+              data-testid="psychic-seconds"
+              value={psychicSeconds}
+              onChange={(event) => setPsychicSeconds(Number(event.target.value))}
+            />
+          </Field>
+          <Field label="Guesser time (seconds)" error={showErrors ? errors.guessSeconds : undefined}>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={15}
+              max={300}
+              className={inputClass}
+              data-testid="guess-seconds"
+              value={guessSeconds}
+              onChange={(event) => setGuessSeconds(Number(event.target.value))}
             />
           </Field>
         </div>
@@ -210,6 +217,7 @@ export default function SetupScreen({
                 <button
                   key={source.id}
                   type="button"
+                  data-testid={`deck-${source.id}`}
                   onClick={() => toggleDeck(source.id)}
                   className={`btn ${on ? "btn-primary" : ""}`}
                 >
@@ -236,6 +244,7 @@ export default function SetupScreen({
               inputMode="numeric"
               min={1}
               className={inputClass}
+              data-testid="target-score"
               value={targetScore}
               placeholder="no limit"
               onChange={(event) => setTargetScore(event.target.value)}
@@ -246,70 +255,74 @@ export default function SetupScreen({
 
       <section className="card mb-4 p-4">
         <h2 className="text-lg font-black uppercase tracking-wide">Custom spectra</h2>
-        <p className="mt-1 text-xs opacity-70">
-          One per line: <code className="mono-num">0: Total Cringe ↔ 100: Pure Masterpiece</code>
-        </p>
-        <textarea
-          value={customText}
-          onChange={(event) => setCustomText(event.target.value)}
-          rows={4}
-          spellCheck={false}
-          className={`${inputClass} mono-num mt-2 resize-y`}
-          placeholder={"0: Total Cringe ↔ 100: Pure Masterpiece\n0: Rainy Day ↔ 100: Beach Day"}
-        />
-        {custom.errors.length > 0 && (
-          <ul className="mt-2 flex flex-col gap-1 text-xs font-bold text-danger">
-            {custom.errors.map((error) => (
-              <li key={error.line}>
-                Line {error.line}: {error.message}
-              </li>
-            ))}
-          </ul>
-        )}
-        {custom.items.length > 0 && (
-          <div className="mt-2 flex flex-col gap-1 text-xs">
-            {custom.items.map((item, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <span className="mono-num shrink-0 rounded bg-surface-2 px-1.5 py-0.5">0 → 100</span>
-                <span className="font-semibold">{item.left}</span>
-                <span className="opacity-50">↔</span>
-                <span className="font-semibold">{item.right}</span>
+        <label className="mt-2 flex items-center gap-2 text-sm font-bold">
+          <input
+            type="checkbox"
+            data-testid="custom-toggle"
+            checked={useCustom}
+            onChange={(event) => setUseCustom(event.target.checked)}
+          />
+          Add my own spectra
+        </label>
+        {useCustom && (
+          <>
+            <p className="mt-2 text-xs opacity-70">
+              One per line: <code className="mono-num">Total Cringe : Pure Masterpiece</code>
+              <br />
+              The left pole is always 0, the right pole always 100.
+            </p>
+            <textarea
+              value={customText}
+              data-testid="custom-spectra"
+              onChange={(event) => setCustomText(event.target.value)}
+              rows={4}
+              spellCheck={false}
+              className={`${inputClass} mono-num mt-2 resize-y`}
+              placeholder={"Total Cringe : Pure Masterpiece\nRainy Day : Beach Day"}
+            />
+            {custom.errors.length > 0 && (
+              <ul className="mt-2 flex flex-col gap-1 text-xs font-bold text-danger">
+                {custom.errors.map((error) => (
+                  <li key={error.line}>
+                    Line {error.line}: {error.message}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {custom.items.length > 0 && (
+              <div className="mt-2 flex flex-col gap-1 text-xs">
+                {custom.items.map((item, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <span className="mono-num shrink-0 rounded bg-surface-2 px-1.5 py-0.5">
+                      0 → 100
+                    </span>
+                    <span className="font-semibold">{item.left}</span>
+                    <span className="opacity-50">:</span>
+                    <span className="font-semibold">{item.right}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                data-testid="custom-first"
+                onClick={() => setCustomFirst(true)}
+                className={`btn ${customFirst ? "btn-primary" : ""}`}
+              >
+                {customFirst ? "✓ " : ""}Play custom first
+              </button>
+              <button
+                type="button"
+                data-testid="custom-shuffle"
+                onClick={() => setCustomFirst(false)}
+                className={`btn ${!customFirst ? "btn-primary" : ""}`}
+              >
+                {!customFirst ? "✓ " : ""}Shuffle into deck
+              </button>
+            </div>
+          </>
         )}
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => setCustomFirst(true)}
-            className={`btn ${customFirst ? "btn-primary" : ""}`}
-          >
-            {customFirst ? "✓ " : ""}Play custom first
-          </button>
-          <button
-            type="button"
-            onClick={() => setCustomFirst(false)}
-            className={`btn ${!customFirst ? "btn-primary" : ""}`}
-          >
-            {!customFirst ? "✓ " : ""}Shuffle into deck
-          </button>
-        </div>
-      </section>
-
-      <section className="card mb-4 p-4">
-        <h2 className="mb-2 text-lg font-black uppercase tracking-wide">Theme</h2>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {THEMES.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onTheme(item.id)}
-              className={`btn btn-sm ${theme === item.id ? "btn-primary" : ""}`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
       </section>
 
       {showErrors && errorList.length > 0 && (
@@ -320,12 +333,18 @@ export default function SetupScreen({
         </ul>
       )}
 
-      <button type="button" className="btn btn-primary btn-lg w-full" onClick={start} disabled={busy}>
+      <button
+        type="button"
+        className="btn btn-primary btn-lg w-full"
+        data-testid="start-match"
+        onClick={start}
+        disabled={busy}
+      >
         {busy ? "Loading questions…" : "Start match"}
       </button>
       {error && <p className="mt-2 text-center text-sm font-bold text-danger">{error}</p>}
       <p className="mt-3 text-center text-xs opacity-60">
-        Deck: {buildDeck([], custom.items, customFirst).length} custom +{" "}
+        Deck: {useCustom ? custom.items.length : 0} custom +{" "}
         {decks
           .map((id) => sources.find((source) => source.id === id)?.label ?? id)
           .join(" ")}
