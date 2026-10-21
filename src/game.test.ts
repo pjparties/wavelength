@@ -125,7 +125,7 @@ test("setup validation enforces the target points rule", () => {
     rounds: 4,
     psychicSeconds: 60,
     guessSeconds: 45,
-    decks: ["sfw"],
+    decks: ["clean"],
     custom: [],
     customFirst: true,
     targetScore: null as number | null,

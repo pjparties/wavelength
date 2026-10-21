@@ -28,7 +28,7 @@ try {
   check("the remote deck is offered on the setup screen", setup.includes("community"), setup.slice(0, 120));
 
   // pick the remote deck only
-  await app.clickId("deck-sfw");
+  await app.clickId("deck-clean");
   await app.clickId("deck-community");
   await app.clickId("start-match");
   await app.waitFor(`document.body.innerText.toLowerCase().includes('pass the device to')`);
@@ -52,7 +52,7 @@ try {
   await app.evaluate("localStorage.removeItem('wavelength.match.v1')");
   await app.navigate(APP_URL.replace(/api=[^&]*/, "api=http://localhost:4999"));
   await app.waitFor(`!!document.querySelector('[data-testid="deck-community"]')`);
-  await app.clickId("deck-sfw");
+  await app.clickId("deck-clean");
   await app.clickId("deck-community");
   await app.clickId("start-match");
   const dead = await app.text();

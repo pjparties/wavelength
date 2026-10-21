@@ -130,7 +130,7 @@ export const NSFW_SPECTRUMS: Spectrum[] = [
   // Flirting & Attraction
   { left: "Friendly Banter", right: "Bedroom Eyes" },
   { left: "Zero Chemistry", right: "Get a Room" },
-  { left: "Friend Zoned by her", right: "Friend Zoned by him" },
+  { left: "Friend Zoned By Her", right: "Friend Zoned By Him" },
   { left: "Pass", right: "Would" },
   { left: "Cute", right: "Sexy" },
   { left: "Cockblock", right: "MVP Wingman Move" },

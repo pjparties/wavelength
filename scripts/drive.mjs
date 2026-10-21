@@ -177,7 +177,7 @@ try {
   const settingsBody = await app.text();
   check(
     "settings modal opens with card pool stats",
-    settingsBody.includes("card pool") && settingsBody.includes("plain deck"),
+    settingsBody.includes("card pool") && settingsBody.includes("clean deck"),
     settingsBody.slice(0, 120),
   );
   await app.shot("09-settings-modal");

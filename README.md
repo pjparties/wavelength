@@ -21,7 +21,7 @@ manifest and service worker also make it installable and cache the app for later
 ## Play
 
 1. **Setup** — teams (name + colour), rounds per team, psychic time and guesser time in
-   seconds, deck (SFW / NSFW), optional custom spectra and an optional "first to N points" target.
+   seconds, deck (Clean / Spicy / Dirty), optional custom spectra and an optional "first to N points" target.
 2. **Psychic pass** — the screen hides behind a curtain. Hand the device to the Psychic only.
 3. **Psychic** — sees the spectrum and the target position. The needle is hidden and the
    meter face is plain, not grey.
@@ -58,7 +58,7 @@ Custom spectra either play first or shuffle into the deck.
 | `src/types.ts` | shared domain types (`Spectrum`, `SetupConfig`, `Match`, `DeckSource`) |
 | `src/dto.ts` | the wire contract with a backend (`SpectrumDTO`, `DeckDTO`, parsers) |
 | `src/deck-source.ts` | where questions come from: built-in decks and backend decks |
-| `src/decks.ts` | SFW (140) and NSFW (70) spectra — the file to edit to change the questions |
+| `src/decks.ts` | Clean, Spicy, and Dirty spectra — the file to edit to change the questions |
 | `src/audio.ts` | Web Audio click/lock/reveal/miss/tick sounds |
 | `src/diwali.ts` | the ASCII diwali backdrop, as a tiled SVG |
 | `src/theme.css` | Tailwind v4 tokens, the Warm Earth theme, paper grain, retro buttons |
@@ -71,7 +71,7 @@ A deck is anything that implements `DeckSource`:
 type DeckSource = { id: string; label: string; size?: number; load: () => Promise<Spectrum[]> };
 ```
 
-The app ships two built-in sources (SFW, NSFW). Point it at an API and its decks appear
+The app ships three built-in sources (Clean, Spicy, Dirty). Point it at an API and its decks appear
 next to them on the setup screen:
 
 ```bash

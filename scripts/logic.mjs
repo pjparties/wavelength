@@ -42,11 +42,11 @@ try {
 
   // ---- valid target score of 5 with 1 round is accepted ----
   await app.setValueId("target-score", "5");
-  // custom spectrum, NSFW-only deck
+  // custom spectrum, dirty-only deck
   await app.clickId("deck-custom");
   await app.setValueId("custom-spectra", "Total Cringe : Pure Masterpiece");
-  await app.clickId("deck-sfw");
-  await app.clickId("deck-nsfw");
+  await app.clickId("deck-clean");
+  await app.clickId("deck-dirty");
   await app.clickId("custom-first");
   await app.setValueId("psychic-seconds", "20");
   await app.setValueId("guess-seconds", "30");
@@ -116,8 +116,8 @@ try {
     return { deckIds: raw.deckIds, deck: raw.deck.length, custom: raw.customCount, teams: raw.teams.length };
   })()`);
   check(
-    "match deck holds only NSFW + custom",
-    JSON.stringify(deckInfo.deckIds) === '["nsfw"]' && deckInfo.deck > deckInfo.custom && deckInfo.custom === 1,
+    "match deck holds only dirty + custom",
+    JSON.stringify(deckInfo.deckIds) === '["dirty"]' && deckInfo.deck > deckInfo.custom && deckInfo.custom === 1,
     JSON.stringify(deckInfo),
   );
 

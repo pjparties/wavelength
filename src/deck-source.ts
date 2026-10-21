@@ -1,4 +1,4 @@
-import { NSFW_SPECTRUMS, SFW_SPECTRUMS } from "./decks.ts";
+import { CLEAN_SPECTRUMS, DIRTY_SPECTRUMS, SPICY_SPECTRUMS } from "./decks.ts";
 import { parseDeckList, parseSpectrumList } from "./dto.ts";
 import type { DeckDTO } from "./dto.ts";
 import type { DeckSource, Spectrum } from "./types.ts";
@@ -94,8 +94,9 @@ export function apiBaseUrl(): string | null {
 /** The decks the app ships with. Backend decks are added on top of these. */
 export function defaultDeckSources(): DeckSource[] {
   return [
-    builtinSource("sfw", "Plain", SFW_SPECTRUMS),
-    builtinSource("nsfw", "Spicy (NSFW)", NSFW_SPECTRUMS),
+    builtinSource("clean", "Clean", CLEAN_SPECTRUMS),
+    builtinSource("spicy", "Spicy", SPICY_SPECTRUMS),
+    builtinSource("dirty", "Dirty (NSFW)", DIRTY_SPECTRUMS),
   ];
 }
 

@@ -62,7 +62,7 @@ export default function SetupScreen({
   const [roundsText, setRoundsText] = useState("5");
   const [psychicSeconds, setPsychicSeconds] = useState(60);
   const [guessSeconds, setGuessSeconds] = useState(45);
-  const [decks, setDecks] = useState<string[]>(["sfw"]);
+  const [decks, setDecks] = useState<string[]>(["clean"]);
   const [useCustom, setUseCustom] = useState(false);
   const [customText, setCustomText] = useState("");
   const [customFirst, setCustomFirst] = useState(true);
