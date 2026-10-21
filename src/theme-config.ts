@@ -34,30 +34,35 @@ export const THEMES = {
   diwali: {
     id: "diwali",
     colors: {
-      paper: "#F8F3E7",
-      surface: "#FFFCF5",
-      surface2: "#F0E3CF",
-      ink: "#30271F",
-      inkSoft: "#857969",
-      line: "#C8B69D",
-      accent: "#C85B35",
-      accentInk: "#FFFCF5",
-      danger: "#A33E2B",
-      zone5: "#747747",
-      zone3: "#E6A52E",
-      zone1: "#C85B35",
-      zone0: "#D6CDBF",
-      shadow: "#857969",
+      // warm cream paper, like diwali sweets-box card stock
+      paper: "#FBEFD9",
+      surface: "#FFF9EC",
+      surface2: "#F6E0B8",
+      // deep maroon-brown, like kajal / dark wood
+      ink: "#3A1620",
+      inkSoft: "#8A6258",
+      // antique gold borders
+      line: "#E0B96F",
+      // diya terracotta-vermilion
+      accent: "#D9531E",
+      accentInk: "#FFF9EC",
+      danger: "#A3182E",
+      // score zones: marigold gold (best) -> saffron -> rani pink -> faded cream
+      zone5: "#E8A317",
+      zone3: "#E26A2C",
+      zone1: "#C23B63",
+      zone0: "#E8D8BC",
+      shadow: "#8A4B2E",
     },
     backdrop: {
       image: DIWALI_BACKGROUND,
       opacity: 1,
     },
     button: {
-      radius: "10px",
-      shadow: "0 2px 8px rgba(48, 39, 31, 0.10)",
-      shadowHover: "0 4px 12px rgba(48, 39, 31, 0.15)",
-      shadowActive: "0 1px 3px rgba(48, 39, 31, 0.12)",
+      radius: "12px",
+      shadow: "0 2px 8px rgba(138, 75, 46, 0.18)",
+      shadowHover: "0 4px 14px rgba(217, 83, 30, 0.28)",
+      shadowActive: "0 1px 3px rgba(138, 75, 46, 0.2)",
     },
   },
 } satisfies Record<string, ThemeConfig>;

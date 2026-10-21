@@ -44,7 +44,7 @@ export const TEAM_NAMES = [
   "Baratheons",
   "Tyrells",
   "Greyjoys",
-  "Night\’s Watch",
+  "Night’s Watch",
   "The Kingsguards",
 ];
 

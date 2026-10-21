@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { clamp, NEEDLE_MAX, NEEDLE_MIN, ZONE_CORE, ZONE_INNER, ZONE_OUTER } from "./game.ts";
 
@@ -45,6 +45,7 @@ export default function Dial({
 }: DialProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragging = useRef(false);
+  const [held, setHeld] = useState(false);
 
   const angleAt = (clientX: number, clientY: number) => {
     const rect = svgRef.current?.getBoundingClientRect();
@@ -64,6 +65,7 @@ export default function Dial({
       // synthetic or already-released pointers cannot be captured; dragging still works
     }
     dragging.current = true;
+    setHeld(true);
     onChange(angleAt(event.clientX, event.clientY));
   };
 
@@ -74,6 +76,7 @@ export default function Dial({
 
   const handlePointerUp = (event: ReactPointerEvent<SVGSVGElement>) => {
     dragging.current = false;
+    setHeld(false);
     try {
       if (event.currentTarget.hasPointerCapture(event.pointerId)) {
         event.currentTarget.releasePointerCapture(event.pointerId);
@@ -111,7 +114,7 @@ export default function Dial({
     <svg
       ref={svgRef}
       viewBox={`0 0 ${VB_W} ${VB_H}`}
-      className="w-full touch-none select-none"
+      className="w-full touch-none select-none outline-none"
       role="img"
       aria-label="Spectrum dial"
       data-testid="dial"
@@ -121,7 +124,12 @@ export default function Dial({
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
       onKeyDown={handleKeyDown}
-      style={{ cursor: interactive ? "grab" : "default" }}
+      style={{
+        cursor: interactive ? "grab" : "default",
+        outline: "none",
+        WebkitTapHighlightColor: "transparent",
+        WebkitTouchCallout: "none",
+      }}
     >
       <path
         d={HALF_CIRCLE}
@@ -166,19 +174,37 @@ export default function Dial({
         })}
 
       {needle !== null && (
-        <g data-needle="true" transform={`rotate(${needle - 90} ${CX} ${CY})`}>
+        <g
+          data-needle="true"
+          transform={`rotate(${needle - 90} ${CX} ${CY})`}
+          style={{ filter: held ? "drop-shadow(0 1px 1px var(--shadow))" : undefined }}
+        >
           <line
             x1={CX}
             y1={CY + 18}
             x2={CX}
             y2={CY - R + 10}
-            stroke="var(--ink)"
-            strokeWidth={3}
+            stroke="var(--surface)"
+            strokeWidth={8}
+            strokeLinecap="round"
+          />
+          <line
+            x1={CX}
+            y1={CY + 18}
+            x2={CX}
+            y2={CY - R + 10}
+            stroke="var(--danger)"
+            strokeWidth={3.5}
             strokeLinecap="round"
           />
         </g>
       )}
-      {needle !== null && <circle cx={CX} cy={CY} r={7} fill="var(--ink)" />}
+      {needle !== null && (
+        <>
+          <circle cx={CX} cy={CY} r={9.5} fill="var(--surface)" />
+          <circle cx={CX} cy={CY} r={7} fill="var(--danger)" />
+        </>
+      )}
 
       {showScale && (
         <>

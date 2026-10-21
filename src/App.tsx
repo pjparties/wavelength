@@ -268,7 +268,7 @@ export default function App() {
         data-testid="diwali-bg"
       />
       <header className="sticky top-0 z-30 border-b-2 border-line bg-paper/95 backdrop-blur">
-        <div className="mx-auto flex max-w-xl items-center justify-between gap-2 px-3 py-2">
+        <div className="match-shell mx-auto flex items-center justify-between gap-2 px-3 py-2">
           <button
             type="button"
             className="title shrink-0 text-sm tracking-wide"
@@ -316,7 +316,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto w-full max-w-xl px-4 pb-8 pt-4">
+      <main className="match-shell relative z-10 mx-auto px-4 pb-4 pt-4">
         {match.phase === "psychic_pass" ? (
           <div className="card p-6 text-center">
             <p className="text-xs font-bold uppercase tracking-widest opacity-60">
@@ -350,7 +350,7 @@ export default function App() {
                 target={targetVisible ? match.targetAngle : null}
                 plainFace={match.phase === "psychic"}
                 showScale={easyMode}
-                interactive={match.phase === "guess" && !timedOut}
+                interactive={match.phase === "guess"}
                 onChange={handleNeedle}
               />
               {chips.length > 0 &&

@@ -196,7 +196,7 @@ try {
   })()`);
   check("no theme picker is offered", themeState.themeButtons === 0 && themeState.themeAttribute === "diwali", JSON.stringify(themeState));
   check("the diwali ascii backdrop is on the page", (themeState.diwali ?? "").includes("data:image/svg+xml"), String(themeState.diwali));
-  check("the app uses the warm ivory paper", themeState.body === "rgb(248, 243, 231)", themeState.body);
+  check("the app uses the warm ivory paper", themeState.body === "rgb(251, 239, 217)", themeState.body);
   await app.shot("10-diwali-theme");
 
   // persistence across reload
@@ -261,7 +261,7 @@ try {
   check("a target at 0 shows half the spectrum", atZero.length === 3, JSON.stringify(atZero));
   check("a target at 10 shows half the spectrum", atTen.length === 3, JSON.stringify(atTen));
   check("the half spectrum keeps the bullseye band",
-    atZero[0].fill === "rgb(116, 119, 71)" && atTen[2].fill === "rgb(116, 119, 71)",
+    atZero[0].fill === "rgb(232, 163, 23)" && atTen[2].fill === "rgb(232, 163, 23)",
     JSON.stringify([atZero, atTen]));
   // the edge cuts the 10 degree core in half: 5 degrees visible, starting at 0 / ending at 180
   check("the edge splits the bullseye exactly in half",

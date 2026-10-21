@@ -18,9 +18,9 @@
   --backdrop-image: none;
   --backdrop-opacity: 0;
   --button-radius: 4px;
-  --button-shadow: 0 2px 8px rgba(41, 37, 31, 0.10);
-  --button-shadow-hover: 0 4px 12px rgba(41, 37, 31, 0.14);
-  --button-shadow-active: 0 1px 3px rgba(41, 37, 31, 0.12);
+  --button-shadow: 0 2px 8px rgba(138, 75, 46, 0.18);
+  --button-shadow-hover: 0 4px 12px rgba(217, 83, 30, 0.28);
+  --button-shadow-active: 0 1px 3px rgba(138, 75, 46, 0.2);
 }
 
 @theme inline {
@@ -46,7 +46,10 @@
 
   body {
     margin: 0;
-    background: var(--paper);
+    background:
+      radial-gradient(ellipse 80% 40% at 50% -5%, rgba(232, 163, 23, 0.22), transparent 70%),
+      var(--paper);
+    background-attachment: fixed;
     color: var(--ink);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -61,6 +64,13 @@
 }
 
 @layer components {
+  /* Match shell: the dial is width-driven, so cap the width by viewport height
+     to keep the scoreboard and buttons on screen on short/large displays. */
+  .match-shell {
+    width: 100%;
+    max-width: min(100%, calc((100dvh - 33rem) * 1.71 + 3.5rem), 64rem);
+  }
+
   .btn {
     background: var(--surface);
     color: var(--ink);
@@ -88,9 +98,14 @@
   }
 
   .btn-primary {
-    background: var(--accent);
+    background: linear-gradient(135deg, var(--accent), var(--zone-3));
     color: var(--accent-ink);
     border-color: var(--accent);
+    box-shadow: 0 2px 10px rgba(217, 83, 30, 0.35);
+  }
+
+  .btn-primary:hover {
+    box-shadow: 0 4px 18px rgba(232, 163, 23, 0.55);
   }
 
   .btn-danger {
@@ -118,8 +133,10 @@
   .card {
     background: var(--surface);
     border: 1px solid var(--line);
-    border-radius: 12px;
-    box-shadow: 0 5px 18px rgba(41, 37, 31, 0.08);
+    border-radius: 14px;
+    box-shadow:
+      0 5px 18px rgba(138, 75, 46, 0.14),
+      inset 0 0 0 1px rgba(232, 163, 23, 0.22);
   }
 
   /* grain sits in a pseudo layer so text inside is never dimmed */
@@ -151,6 +168,22 @@
     background-image: var(--backdrop-image);
     background-size: 390px 440px;
     background-repeat: repeat;
+    animation: diwali-twinkle 5s ease-in-out infinite alternate;
+  }
+
+  @keyframes diwali-twinkle {
+    from {
+      opacity: var(--backdrop-opacity);
+    }
+    to {
+      opacity: calc(var(--backdrop-opacity) * 0.78);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .diwali-bg {
+      animation: none;
+    }
   }
 
   .title {
