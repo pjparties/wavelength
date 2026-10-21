@@ -69,7 +69,13 @@ try {
   }))()`);
   check("NEEDLE HIDDEN in psychic phase", psychicState.needle === false);
   check("target zones visible in psychic phase", psychicState.target === true);
-  check("psychic sees the prompt + target position", /target sits at/.test(psychicState.body.toLowerCase()));
+  check("hard mode hides the target position from the psychic",
+    !/target sits at/.test(psychicState.body.toLowerCase()), psychicState.body.slice(0, 120));
+  const hardDial = await app.evaluate(`(() => {
+    const svg = document.querySelector('svg[aria-label="Spectrum dial"]');
+    return { labels: svg.querySelectorAll('text').length, ticks: svg.querySelectorAll('[data-tick]').length };
+  })()`);
+  check("hard mode has no scale markers on the dial", hardDial.labels === 0 && hardDial.ticks === 0, JSON.stringify(hardDial));
   await app.shot("04-psychic-view");
 
   await app.clickId("hide-target");
@@ -80,8 +86,22 @@ try {
   }))()`);
   check("NEEDLE VISIBLE in guess phase", guessState.needle === true);
   check("target zones hidden in guess phase", guessState.target === false);
-  check("needle readout shown to guessers", /needle at/.test(guessState.body.toLowerCase()));
+  check("hard mode hides the needle readout", !/needle at/.test(guessState.body.toLowerCase()));
+
+  // easy mode puts the scale and the readouts back
+  await app.clickId("settings");
+  await app.clickId("toggle-easy");
+  await app.clickId("close-settings");
+  const easyDial = await app.evaluate(`(() => {
+    const svg = document.querySelector('svg[aria-label="Spectrum dial"]');
+    return { labels: svg.querySelectorAll('text').length, ticks: svg.querySelectorAll('[data-tick]').length };
+  })()`);
+  check("easy mode brings back the scale markers", easyDial.labels === 2 && easyDial.ticks === 11, JSON.stringify(easyDial));
+  check("easy mode brings back the needle readout", /needle at/.test((await app.text())));
   await app.shot("05-guess-view");
+  await app.clickId("settings");
+  await app.clickId("toggle-easy");
+  await app.clickId("close-settings");
 
   // nudge the needle with the keyboard to prove it is interactive
   const before = await app.evaluate("document.querySelector('[data-needle]').getAttribute('transform')");

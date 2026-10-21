@@ -22,6 +22,8 @@ const api = spawn(process.execPath, ["scripts/mock-api.mjs"], {
 const app = await launch({ url: APP_URL, width: 430, height: 932, port: PORT });
 
 try {
+  // The catalogue of a backend arrives over the network, so wait for it.
+  await app.waitFor(`!!document.querySelector('[data-testid="deck-community"]')`);
   const setup = await app.text();
   check("the remote deck is offered on the setup screen", setup.includes("community"), setup.slice(0, 120));
 
@@ -48,6 +50,7 @@ try {
   // a backend that is down must not break the app
   await app.evaluate("localStorage.removeItem('wavelength.match.v1')");
   await app.navigate(APP_URL.replace(/api=[^&]*/, "api=http://localhost:4999"));
+  await app.waitFor(`!!document.querySelector('[data-testid="deck-community"]')`);
   await app.clickId("deck-sfw");
   await app.clickId("deck-community");
   await app.clickId("start-match");

@@ -84,6 +84,7 @@ try {
     return {
       box: { w: Math.round(r.width), h: Math.round(r.height) },
       texts,
+      ticks: svg.querySelectorAll('[data-tick]').length,
       zoneFills,
       face: face ? face.getAttribute('data-face') : null,
       faceFill: face ? getComputedStyle(face).fill : null,
@@ -93,14 +94,31 @@ try {
     };
   })()`);
   console.log("dial:", JSON.stringify(dial));
-  check("scale label 0 sits at the left end of the arc", dial.texts[0].text === "0" && dial.texts[0].x < 60, JSON.stringify(dial.texts));
-  check("scale label 10 sits at the right end of the arc", dial.texts[1].text === "10" && dial.texts[1].x > 340, JSON.stringify(dial.texts));
+  check("hard mode has no scale labels or ticks", dial.texts.length === 0 && dial.ticks === 0, JSON.stringify(dial.texts));
   check("needle is absent in the psychic phase", dial.hasNeedle === false);
   check("the psychic meter face is plain, not grey",
     dial.face === "plain" && dial.faceFill === "rgb(247, 240, 227)", JSON.stringify([dial.face, dial.faceFill]));
   check("target renders the three scoring bands",
     new Set(dial.zoneFills.map((f) => f)).size >= 3, JSON.stringify(dial.zoneFills));
   check("dial fits the phone width", dial.box.w <= 430 && dial.box.w > 300, JSON.stringify(dial.box));
+
+  // easy mode puts the scale back
+  await app.clickId("settings");
+  await app.clickId("toggle-easy");
+  await app.clickId("close-settings");
+  const easyDial = await app.evaluate(`(() => {
+    const svg = document.querySelector('svg[aria-label="Spectrum dial"]');
+    return {
+      texts: [...svg.querySelectorAll('text')].map(t => ({ text: t.textContent, x: Number(t.getAttribute('x')) })),
+      ticks: svg.querySelectorAll('[data-tick]').length,
+    };
+  })()`);
+  check("scale label 0 sits at the left end of the arc", easyDial.texts[0]?.text === "0" && easyDial.texts[0]?.x < 60, JSON.stringify(easyDial.texts));
+  check("scale label 10 sits at the right end of the arc", easyDial.texts[1]?.text === "10" && easyDial.texts[1]?.x > 340, JSON.stringify(easyDial.texts));
+  check("easy mode draws the scale ticks", easyDial.ticks === 11, String(easyDial.ticks));
+  await app.clickId("settings");
+  await app.clickId("toggle-easy");
+  await app.clickId("close-settings");
 
   // reveal: needle + target together, score badge
   await app.clickId("hide-target");

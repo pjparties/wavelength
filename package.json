@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "node --test src/game.test.ts",
+    "test": "node --test src/*.test.ts",
     "check": "tsc -b && oxlint",
     "mock-api": "node scripts/mock-api.mjs",
     "verify": "npm run build && node scripts/drive.mjs ./shots && node scripts/visual.mjs ./shots && node scripts/logic.mjs && node scripts/scoring.mjs",

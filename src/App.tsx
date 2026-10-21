@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import Dial from "./dial.tsx";
 import SetupScreen from "./setup.tsx";
-import { defaultDeckSources, loadDeck } from "./deck-source.ts";
+import { apiBaseUrl, defaultDeckSources, loadDeck, loadRemoteDeckSources } from "./deck-source.ts";
 import { DIWALI_BACKGROUND } from "./diwali.ts";
 import { playSfx, setSoundEnabled } from "./audio.ts";
 import {
@@ -13,10 +13,11 @@ import {
   toScale,
   totalTurns,
 } from "./game.ts";
-import type { Match, SetupConfig } from "./types.ts";
+import type { DeckSource, Match, SetupConfig } from "./types.ts";
 
 const MATCH_KEY = "wavelength.match.v1";
 const SOUND_KEY = "wavelength.sound.v1";
+const EASY_KEY = "wavelength.easy.v1";
 
 function safeGet(key: string): string | null {
   try {
@@ -68,6 +69,8 @@ const POINTS_COLOR: Record<number, string> = {
 export default function App() {
   const [match, dispatch] = useReducer(reducer, null, loadMatch);
   const [soundOn, setSoundOn] = useState(() => safeGet(SOUND_KEY) !== "off");
+  // Hard mode is the default: no scale markers and no position readouts.
+  const [easyMode, setEasyMode] = useState(() => safeGet(EASY_KEY) === "on");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [homePromptOpen, setHomePromptOpen] = useState(false);
   const [remaining, setRemaining] = useState(60_000);
@@ -79,6 +82,25 @@ export default function App() {
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
   const sources = useMemo(() => defaultDeckSources(), []);
+  const [remoteSources, setRemoteSources] = useState<DeckSource[]>([]);
+
+  // A configured backend adds its decks next to the built-in ones.
+  useEffect(() => {
+    const api = apiBaseUrl();
+    if (!api) return;
+    let live = true;
+    loadRemoteDeckSources(api).then((loaded) => {
+      if (live) setRemoteSources(loaded);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const allSources = useMemo(
+    () => (remoteSources.length > 0 ? [...sources, ...remoteSources] : sources),
+    [sources, remoteSources],
+  );
 
   const turnIndex = match?.turnIndex ?? 0;
 
@@ -86,6 +108,10 @@ export default function App() {
     setSoundEnabled(soundOn);
     safeSet(SOUND_KEY, soundOn ? "on" : "off");
   }, [soundOn]);
+
+  useEffect(() => {
+    safeSet(EASY_KEY, easyMode ? "on" : "off");
+  }, [easyMode]);
 
   useEffect(() => {
     if (!match) {
@@ -138,7 +164,7 @@ export default function App() {
     setStarting(true);
     setStartError(null);
     try {
-      const spectra = await loadDeck(sources, config.decks);
+      const spectra = await loadDeck(allSources, config.decks);
       if (spectra.length === 0 && config.custom.length === 0) {
         throw new Error("No questions available");
       }
@@ -203,7 +229,7 @@ export default function App() {
         />
         <SetupScreen
           onStart={handleStart}
-          sources={sources}
+          sources={allSources}
           busy={starting}
           error={startError}
         />
@@ -228,7 +254,7 @@ export default function App() {
         style={{ backgroundImage: DIWALI_BACKGROUND }}
       />
       <header className="sticky top-0 z-30 border-b-2 border-line bg-paper/95 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-3 py-2">
+        <div className="mx-auto flex max-w-xl items-center justify-between gap-2 px-3 py-2">
           <button
             type="button"
             className="title shrink-0 text-sm tracking-wide"
@@ -276,7 +302,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto w-full max-w-3xl px-4 pb-16 pt-4">
+      <main className="relative z-10 mx-auto w-full max-w-xl px-4 pb-8 pt-4">
         {match.phase === "psychic_pass" ? (
           <div className="card p-6 text-center">
             <p className="text-xs font-bold uppercase tracking-widest opacity-60">
@@ -318,23 +344,24 @@ export default function App() {
                   {card.right}
                 </p>
               </div>
-              {match.phase === "psychic" && (
+              {match.phase === "psychic" && easyMode && (
                 <p className="mono-num mt-3 text-center text-sm font-bold opacity-80">
                   Target sits at {(toScale(match.targetAngle)).toFixed(1)} / 10
                 </p>
               )}
-              {match.phase === "guess" && (
+              {match.phase === "guess" && easyMode && (
                 <p className="mono-num mt-3 text-center text-sm font-bold opacity-80">
                   Needle at {toScale(match.needleAngle).toFixed(1)} / 10
                 </p>
               )}
             </section>
 
-            <section className="card relative mb-3 p-3">
+            <section className="card relative mb-3 p-3" data-testid="board">
               <Dial
                 needle={needleVisible ? match.needleAngle : null}
                 target={targetVisible ? match.targetAngle : null}
                 plainFace={match.phase === "psychic"}
+                showScale={easyMode}
                 interactive={match.phase === "guess" && !timedOut}
                 onChange={handleNeedle}
               />
@@ -464,7 +491,7 @@ export default function App() {
             </section>
 
             {match.phase !== "gameover" && (
-              <section className="card p-4">
+              <section className="card p-4" data-testid="score-panel">
                 <h2 className="mb-2 text-xs font-bold uppercase tracking-widest opacity-60">
                   Scoreboard
                 </h2>
@@ -472,18 +499,22 @@ export default function App() {
                   {match.teams.map((entry, index) => (
                     <div
                       key={entry.name}
-                      className={`flex flex-1 items-center justify-between rounded-md px-2 py-1.5 ${
-                        index === teamIndex ? "border-2 border-line" : "border-2 border-transparent"
-                      }`}
+                      className="flex flex-1 items-center justify-between gap-2 rounded-md px-2 py-1.5"
                     >
-                      <span className="flex items-center gap-2 font-bold">
+                      <span className="flex min-w-0 items-center gap-2 font-bold">
                         <span
-                          className="h-3 w-3 rounded-full border border-line"
+                          className="h-3 w-3 shrink-0 rounded-full border border-line"
                           style={{ background: entry.color }}
                         />
-                        {entry.name}
+                        <span className="truncate">{entry.name}</span>
                       </span>
-                      <span className="mono-num font-black">{entry.score}</span>
+                      <span
+                        className={`mono-num shrink-0 font-black ${
+                          index === teamIndex ? "rounded-full border-2 border-line px-2 py-0.5" : ""
+                        }`}
+                      >
+                        {entry.score}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -551,16 +582,33 @@ export default function App() {
             <button
               type="button"
               className={`btn btn-sm w-full ${soundOn ? "btn-primary" : ""}`}
+              data-testid="toggle-sound"
               onClick={() => setSoundOn((value) => !value)}
             >
               {soundOn ? "✓ Sound on" : "Sound off"}
             </button>
 
             <h3 className="mb-2 mt-4 text-xs font-bold uppercase tracking-widest opacity-60">
+              Difficulty
+            </h3>
+            <button
+              type="button"
+              className={`btn btn-sm w-full ${easyMode ? "btn-primary" : ""}`}
+              data-testid="toggle-easy"
+              onClick={() => setEasyMode((value) => !value)}
+            >
+              {easyMode ? "✓ Easy mode" : "Hard mode"}
+            </button>
+            <p className="mt-1 text-xs opacity-60">
+              Easy mode puts the 0-10 scale back on the dial and shows where the needle and
+              the target sit.
+            </p>
+
+            <h3 className="mb-2 mt-4 text-xs font-bold uppercase tracking-widest opacity-60">
               Card pool
             </h3>
             <dl className="mono-num flex flex-col gap-1 text-sm">
-              {sources.map((source) => (
+              {allSources.map((source) => (
                 <div key={source.id} className="flex justify-between">
                   <dt className="opacity-70">{source.label} deck</dt>
                   <dd>{source.size ?? "remote"}</dd>

@@ -29,6 +29,8 @@ export type DialProps = {
   target: number | null;
   /** Paint the face plain instead of the grey miss zone (psychic view). */
   plainFace?: boolean;
+  /** Show the scale ticks and the 0 / 10 labels. Off in hard mode. */
+  showScale?: boolean;
   interactive?: boolean;
   onChange?: (angle: number) => void;
 };
@@ -37,6 +39,7 @@ export default function Dial({
   needle,
   target,
   plainFace = false,
+  showScale = true,
   interactive = false,
   onChange,
 }: DialProps) {
@@ -140,25 +143,27 @@ export default function Dial({
       <path d={HALF_CIRCLE} fill="none" stroke="var(--line)" strokeWidth={4} />
       <line x1={CX - R - 8} y1={CY} x2={CX + R + 8} y2={CY} stroke="var(--line)" strokeWidth={4} strokeLinecap="round" />
 
-      {Array.from({ length: 11 }, (_, i) => {
-        const arc = i * 18;
-        const rad = (arc * Math.PI) / 180;
-        const outer = point(arc);
-        const ix = CX - (R - 12) * Math.cos(rad);
-        const iy = CY - (R - 12) * Math.sin(rad);
-        return (
-          <line
-            key={arc}
-            x1={ix}
-            y1={iy}
-            x2={outer.x}
-            y2={outer.y}
-            stroke="var(--line)"
-            strokeWidth={i % 5 === 0 ? 3 : 1.5}
-            opacity={i % 5 === 0 ? 0.9 : 0.4}
-          />
-        );
-      })}
+      {showScale &&
+        Array.from({ length: 11 }, (_, i) => {
+          const arc = i * 18;
+          const rad = (arc * Math.PI) / 180;
+          const outer = point(arc);
+          const ix = CX - (R - 12) * Math.cos(rad);
+          const iy = CY - (R - 12) * Math.sin(rad);
+          return (
+            <line
+              key={arc}
+              data-tick="true"
+              x1={ix}
+              y1={iy}
+              x2={outer.x}
+              y2={outer.y}
+              stroke="var(--line)"
+              strokeWidth={i % 5 === 0 ? 3 : 1.5}
+              opacity={i % 5 === 0 ? 0.9 : 0.4}
+            />
+          );
+        })}
 
       {needle !== null && (
         <g data-needle="true" transform={`rotate(${needle - 90} ${CX} ${CY})`}>
@@ -175,12 +180,16 @@ export default function Dial({
       )}
       {needle !== null && <circle cx={CX} cy={CY} r={7} fill="var(--ink)" />}
 
-      <text x={CX - R + 14} y={CY + 26} fill="var(--ink)" fontSize={20} fontWeight={800} textAnchor="middle">
-        0
-      </text>
-      <text x={CX + R - 16} y={CY + 26} fill="var(--ink)" fontSize={20} fontWeight={800} textAnchor="middle">
-        10
-      </text>
+      {showScale && (
+        <>
+          <text x={CX - R + 14} y={CY + 26} fill="var(--ink)" fontSize={20} fontWeight={800} textAnchor="middle">
+            0
+          </text>
+          <text x={CX + R - 16} y={CY + 26} fill="var(--ink)" fontSize={20} fontWeight={800} textAnchor="middle">
+            10
+          </text>
+        </>
+      )}
     </svg>
   );
 }

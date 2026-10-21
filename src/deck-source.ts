@@ -1,9 +1,17 @@
 import { NSFW_SPECTRUMS, SFW_SPECTRUMS } from "./decks.ts";
+import { parseDeckList, parseSpectrumList } from "./dto.ts";
+import type { DeckDTO } from "./dto.ts";
 import type { DeckSource, Spectrum } from "./types.ts";
 
-/** A deck that ships with the app. */
+/** A deck that ships with the app. Edit src/decks.ts to change its questions. */
 export function builtinSource(id: string, label: string, spectra: Spectrum[]): DeckSource {
   return { id, label, size: spectra.length, load: async () => spectra };
+}
+
+async function fetchJson(url: string): Promise<unknown> {
+  const res = await fetch(url, { headers: { accept: "application/json" } });
+  if (!res.ok) throw new Error(`server answered ${res.status}`);
+  return res.json();
 }
 
 /**
@@ -15,20 +23,33 @@ export function remoteSource(id: string, label: string, url: string): DeckSource
   return {
     id,
     label,
-    load: async () => {
-      const res = await fetch(url, { headers: { accept: "application/json" } });
-      if (!res.ok) throw new Error(`${label}: server answered ${res.status}`);
-      const body = await res.json();
-      const items = Array.isArray(body) ? body : body?.items;
-      if (!Array.isArray(items)) throw new Error(`${label}: expected a list of questions`);
-      return items
-        .map((item: { left?: unknown; right?: unknown }) => ({
-          left: String(item?.left ?? "").trim(),
-          right: String(item?.right ?? "").trim(),
-        }))
-        .filter((item) => item.left && item.right);
-    },
+    load: async () => parseSpectrumList(await fetchJson(url)),
   };
+}
+
+/** The decks of a backend catalogue: each one loads GET /decks/{id}/spectra. */
+export function remoteDeckSources(baseUrl: string, decks: DeckDTO[]): DeckSource[] {
+  const base = baseUrl.replace(/\/+$/, "");
+  return decks.map((deck) => ({
+    id: deck.id,
+    label: deck.label,
+    size: deck.size,
+    load: async () => parseSpectrumList(await fetchJson(`${base}/decks/${deck.id}/spectra`)),
+  }));
+}
+
+/**
+ * The decks a backend offers. A backend with a catalogue (GET /decks) gets one
+ * button per deck; a backend without one keeps working through a single flat
+ * list of questions (GET /spectra).
+ */
+export async function loadRemoteDeckSources(baseUrl: string): Promise<DeckSource[]> {
+  const base = baseUrl.replace(/\/+$/, "");
+  try {
+    return remoteDeckSources(base, parseDeckList(await fetchJson(`${base}/decks`)));
+  } catch {
+    return [remoteSource("community", "Community", `${base}/spectra`)];
+  }
 }
 
 /** Backend base URL: ?api=... in the address bar wins, else VITE_API_URL at build time. */
@@ -42,17 +63,12 @@ export function apiBaseUrl(): string | null {
   return (import.meta.env?.VITE_API_URL as string | undefined) || null;
 }
 
-/** Every deck the app can offer, built-in plus backend if one is configured. */
+/** The decks the app ships with. Backend decks are added on top of these. */
 export function defaultDeckSources(): DeckSource[] {
-  const sources: DeckSource[] = [
+  return [
     builtinSource("sfw", "SFW", SFW_SPECTRUMS),
-    builtinSource("nsfw", "NSFW (18+)", NSFW_SPECTRUMS),
+    builtinSource("nsfw", "NSFW", NSFW_SPECTRUMS),
   ];
-  const api = apiBaseUrl();
-  if (api) {
-    sources.push(remoteSource("community", "Community", `${api.replace(/\/+$/, "")}/spectra`));
-  }
-  return sources;
 }
 
 /** Load the questions of the selected sources. A failing source fails the load. */

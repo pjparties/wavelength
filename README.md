@@ -55,8 +55,9 @@ Custom spectra either play first or shuffle into the deck.
 | `src/dial.tsx` | SVG spectrum dial, needle drag, zone wedges |
 | `src/game.ts` | the domain: scoring, deck building, custom parsing, validation, the state machine (no React) |
 | `src/types.ts` | shared domain types (`Spectrum`, `SetupConfig`, `Match`, `DeckSource`) |
+| `src/dto.ts` | the wire contract with a backend (`SpectrumDTO`, `DeckDTO`, parsers) |
 | `src/deck-source.ts` | where questions come from: built-in decks and backend decks |
-| `src/decks.ts` | SFW (140) and NSFW (70) spectra |
+| `src/decks.ts` | SFW (140) and NSFW (70) spectra — the file to edit to change the questions |
 | `src/audio.ts` | Web Audio click/lock/reveal/miss/tick sounds |
 | `src/diwali.ts` | the ASCII diwali backdrop, as a tiled SVG |
 | `src/theme.css` | Tailwind v4 tokens, the Warm Earth theme, paper grain, retro buttons |
@@ -69,28 +70,40 @@ A deck is anything that implements `DeckSource`:
 type DeckSource = { id: string; label: string; size?: number; load: () => Promise<Spectrum[]> };
 ```
 
-The app ships two built-in sources (SFW, NSFW). Point it at an API and a third one appears
-on the setup screen:
+The app ships two built-in sources (SFW, NSFW). Point it at an API and its decks appear
+next to them on the setup screen:
 
 ```bash
-npm run mock-api                                   # serves GET /spectra on :4000
+npm run mock-api                                   # serves GET /decks on :4000
 open "http://localhost:3000/?api=http://localhost:4000"
 ```
 
-The endpoint must answer with a list of `{left, right}` pairs (or `{items: [...]}`). A
-database behind an admin CRUD for questions plugs in the same way — `remoteSource()` in
-`src/deck-source.ts` is the only thing that has to change, and no UI code moves. Without
-`?api=`, the app stays fully offline; a backend that is down shows an error and never
-blocks the built-in decks.
+The wire contract lives in `src/dto.ts`, so the frontend and the backend agree on one
+shape and the UI never sees JSON:
+
+| Endpoint | Answers with | DTO |
+| --- | --- | --- |
+| `GET /decks` | `{ decks: [{ id, label, size? }] }` | `DeckListDTO` |
+| `GET /decks/{id}/spectra` | `{ items: [{ left, right }] }` | `SpectrumListDTO` |
+| `GET /spectra` (legacy) | `[{ left, right }]` | `SpectrumListDTO` |
+
+Both `{"items": [...]}` and a bare `[...]` are accepted, so a plain static file works
+as well as a real API. A backend without a catalogue keeps working through the legacy
+`GET /spectra` and shows up as one "Community" deck. Without `?api=`, the app stays
+fully offline; a backend that is down shows an error and never blocks the built-in
+decks.
+
+The built-in questions stay easy to edit: `src/decks.ts` is a plain array of
+`{ left, right }` rows, and the domain type is the same shape as the DTO.
 
 What a real backend still needs on top of that seam:
 
 | Need | Where it plugs in |
 | --- | --- |
-| more decks than one | `defaultDeckSources()` — list them from `GET /decks` instead of hard-coding them |
+| more decks than one | `GET /decks` — the app already lists every deck the backend offers |
 | login / users | `DeckSource.load()` — send the token, and add a screen for it |
-| admin CRUD for questions | a new endpoint; the admin UI is a new screen, the deck reads through `DeckSource` |
-| custom spectra saved per user | `POST /spectra` next to `GET /spectra` |
+| admin CRUD for questions | `POST /decks/{id}/spectra` next to the GET; `toSpectrumDTO()` writes a row |
+| custom spectra saved per user | the same POST, one deck per user |
 | the match itself on a server | `src/game.ts` is a pure reducer, so it can move to the backend unchanged |
 
 Users and accounts would need an auth layer on top of that; the match state itself is
