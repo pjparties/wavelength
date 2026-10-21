@@ -140,8 +140,8 @@ export default function Dial({
         </g>
       )}
 
-      <path d={HALF_CIRCLE} fill="none" stroke="var(--line)" strokeWidth={4} />
-      <line x1={CX - R - 8} y1={CY} x2={CX + R + 8} y2={CY} stroke="var(--line)" strokeWidth={4} strokeLinecap="round" />
+      <path d={HALF_CIRCLE} fill="none" stroke="var(--line)" strokeWidth={2} />
+      <line x1={CX - R - 8} y1={CY} x2={CX + R + 8} y2={CY} stroke="var(--line)" strokeWidth={2} strokeLinecap="round" />
 
       {showScale &&
         Array.from({ length: 11 }, (_, i) => {
@@ -159,7 +159,7 @@ export default function Dial({
               x2={outer.x}
               y2={outer.y}
               stroke="var(--line)"
-              strokeWidth={i % 5 === 0 ? 3 : 1.5}
+              strokeWidth={i % 5 === 0 ? 2 : 1}
               opacity={i % 5 === 0 ? 0.9 : 0.4}
             />
           );
@@ -173,7 +173,7 @@ export default function Dial({
             x2={CX}
             y2={CY - R + 10}
             stroke="var(--ink)"
-            strokeWidth={5}
+            strokeWidth={3}
             strokeLinecap="round"
           />
         </g>

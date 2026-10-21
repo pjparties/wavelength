@@ -42,10 +42,10 @@ try {
     };
   })()`);
   console.log("styles:", JSON.stringify(styles, null, 1));
-  check("page uses the warm earth paper background", styles.bodyBg === "rgb(237, 227, 212)", styles.bodyBg);
-  check("retro buttons have a hard offset shadow", styles.btnShadow.includes("4px 4px"), styles.btnShadow);
-  check("buttons have a 2px ink border", styles.btnBorder.includes("2px"), styles.btnBorder);
-  check("cards are bordered with a hard shadow", styles.cardBorder.includes("2px") && styles.cardShadow.includes("6px"), styles.cardShadow);
+  check("page uses the warm ivory background", styles.bodyBg === "rgb(244, 239, 229)", styles.bodyBg);
+  check("buttons have a soft shadow", styles.btnShadow.includes("0.1") && styles.btnShadow.includes("2px 8px"), styles.btnShadow);
+  check("buttons have a thin border", styles.btnBorder.includes("1px"), styles.btnBorder);
+  check("cards have a thin border and soft shadow", styles.cardBorder.includes("1px") && styles.cardShadow.includes("5px 18px"), styles.cardShadow);
   check("paper grain is an inline svg data uri", styles.grain.includes("data:image/svg+xml"), styles.grain);
   check("the diwali ascii backdrop covers the page",
     !!styles.diwali && styles.diwali.bg.includes("data:image/svg+xml") && styles.diwali.position === "fixed" && styles.diwali.w >= 430,
@@ -54,18 +54,18 @@ try {
   // ---------- pixel audit of the setup screen ----------
   const setupShot = await app.shot("v1-setup");
   const setupPixels = await app.pixels(setupShot, {
-    targets: ["#ede3d4", "#f7f0e3", "#2b2118", "#a2542b"],
+    targets: ["#f4efe5", "#fffcf5", "#29251f", "#b45d38"],
   });
   console.log("setup screen dominant colors:", JSON.stringify(setupPixels.top));
-  const paperPx = setupPixels.near["#ede3d4"] + setupPixels.near["#f7f0e3"];
-  const inkPx = setupPixels.near["#2b2118"];
-  const accentPx = setupPixels.near["#a2542b"];
+  const paperPx = setupPixels.near["#f4efe5"] + setupPixels.near["#fffcf5"];
+  const inkPx = setupPixels.near["#29251f"];
+  const accentPx = setupPixels.near["#b45d38"];
   check("cream paper fills the page", paperPx > setupPixels.total * 0.4, paperPx + "/" + setupPixels.total);
   check("ink text is rendered", inkPx > 2000, String(inkPx));
   check("accent colour (burnt orange) is rendered", accentPx > 500, String(accentPx));
 
-  const btnPixels = await app.pixels(setupShot, { selector: ".btn-primary", targets: ["#a2542b"] });
-  check("primary button face is the accent colour", btnPixels.near["#a2542b"] > btnPixels.total * 0.6, JSON.stringify(btnPixels.top.slice(0, 3)));
+  const btnPixels = await app.pixels(setupShot, { selector: ".btn-primary", targets: ["#b45d38"] });
+  check("primary button face is the accent colour", btnPixels.near["#b45d38"] > btnPixels.total * 0.6, JSON.stringify(btnPixels.top.slice(0, 3)));
 
   // ---------- geometry audit of the dial ----------
   await app.clickId("start-match");
@@ -97,7 +97,7 @@ try {
   check("hard mode has no scale labels or ticks", dial.texts.length === 0 && dial.ticks === 0, JSON.stringify(dial.texts));
   check("needle is absent in the psychic phase", dial.hasNeedle === false);
   check("the psychic meter face is plain, not grey",
-    dial.face === "plain" && dial.faceFill === "rgb(247, 240, 227)", JSON.stringify([dial.face, dial.faceFill]));
+    dial.face === "plain" && dial.faceFill === "rgb(255, 252, 245)", JSON.stringify([dial.face, dial.faceFill]));
   check("target renders the three scoring bands",
     new Set(dial.zoneFills.map((f) => f)).size >= 3, JSON.stringify(dial.zoneFills));
   check("dial fits the phone width", dial.box.w <= 430 && dial.box.w > 300, JSON.stringify(dial.box));
@@ -132,14 +132,14 @@ try {
   const revealShot = await app.shot("v2-reveal");
   const dialPixels = await app.pixels(revealShot, {
     selector: "svg[aria-label='Spectrum dial']",
-    targets: ["#3c5a48", "#c89b3c", "#a2542b", "#b5a88f"],
+    targets: ["#526c54", "#d2a747", "#b45d38", "#c2b59d"],
   });
   console.log("reveal dial colours:", JSON.stringify(dialPixels.top));
   const zoneShare = (hex) => dialPixels.near[hex] / dialPixels.total;
-  check("bullseye green is painted on the dial", zoneShare("#3c5a48") > 0.01, zoneShare("#3c5a48").toFixed(3));
-  check("inner ochre is painted on the dial", zoneShare("#c89b3c") > 0.01, zoneShare("#c89b3c").toFixed(3));
-  check("outer band is painted on the dial", zoneShare("#a2542b") > 0.01, zoneShare("#a2542b").toFixed(3));
-  check("miss grey is painted on the dial", zoneShare("#b5a88f") > 0.05, zoneShare("#b5a88f").toFixed(3));
+  check("bullseye green is painted on the dial", zoneShare("#526c54") > 0.01, zoneShare("#526c54").toFixed(3));
+  check("inner ochre is painted on the dial", zoneShare("#d2a747") > 0.01, zoneShare("#d2a747").toFixed(3));
+  check("outer band is painted on the dial", zoneShare("#b45d38") > 0.01, zoneShare("#b45d38").toFixed(3));
+  check("miss grey is painted on the dial", zoneShare("#c2b59d") > 0.05, zoneShare("#c2b59d").toFixed(3));
   check("dial has strong internal contrast", dialPixels.contrast > 120, String(dialPixels.contrast));
 
   const revealFace = await app.evaluate(

@@ -7,7 +7,7 @@ import {
 } from "./game.ts";
 import type { SetupConfig, SetupErrors } from "./types.ts";
 import type { DeckSource } from "./types.ts";
-import { BUTTON_TEXT } from "./ui-copy.ts";
+import { BUTTON_ARIA, BUTTON_TEXT } from "./ui-copy.ts";
 
 export type SetupScreenProps = {
   onStart: (config: SetupConfig) => void | Promise<void>;
@@ -17,6 +17,8 @@ export type SetupScreenProps = {
   busy?: boolean;
   /** Message from a failed load. */
   error?: string | null;
+  easyMode: boolean;
+  onEasyModeChange: (enabled: boolean) => void;
 };
 
 function Field({
@@ -50,6 +52,8 @@ export default function SetupScreen({
   sources,
   busy = false,
   error = null,
+  easyMode,
+  onEasyModeChange,
 }: SetupScreenProps) {
   const [teams, setTeams] = useState([
     { name: "Team 1", color: TEAM_PALETTE[0] },
@@ -64,6 +68,7 @@ export default function SetupScreen({
   const [customFirst, setCustomFirst] = useState(true);
   const [targetScore, setTargetScore] = useState<string>("");
   const [showErrors, setShowErrors] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const custom = useMemo(() => parseCustomSpectra(customText), [customText]);
   // An empty (or cleared) rounds field means one round.
@@ -112,11 +117,22 @@ export default function SetupScreen({
 
   return (
     <div className="relative z-10 mx-auto w-full max-w-2xl px-4 pb-24 pt-6">
-      <header className="mb-6 text-center">
-        <h1 className="title text-5xl sm:text-6xl">WAVELENGTH</h1>
-        <p className="mt-2 text-sm font-semibold uppercase tracking-[0.3em] opacity-60">
-          Offline pass-and-play
-        </p>
+      <header className="mb-6 flex items-start gap-3 text-center">
+        <div className="flex-1">
+          <h1 className="title text-4xl sm:text-5xl">WAVELENGTH</h1>
+          <p className="mt-2 text-sm font-semibold uppercase tracking-[0.3em] opacity-60">
+            Offline pass-and-play
+          </p>
+        </div>
+        <button
+          type="button"
+          className="btn btn-sm"
+            data-testid="setup-settings"
+          aria-label={BUTTON_ARIA.settings}
+          onClick={() => setSettingsOpen(true)}
+        >
+          ⚙
+        </button>
       </header>
 
       <section className="card mb-4 p-4">
@@ -266,71 +282,110 @@ export default function SetupScreen({
         )}
       </section>
 
-      <section className="card mb-4 p-4">
-        <h2 className="mb-3 text-lg font-black uppercase tracking-wide">Rules</h2>
-        <Field
-          label="Target points (optional)"
-          hint={`First team to reach it wins. Max ${rounds * 5} points (${rounds} round${rounds === 1 ? "" : "s"} x 5).`}
-          error={showErrors ? errors.targetScore : undefined}
+      {settingsOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setSettingsOpen(false)}
         >
-          <input
-            type="number"
-            inputMode="numeric"
-            min={1}
-            className={inputClass}
-            data-testid="target-score"
-            value={targetScore}
-            placeholder="no limit"
-            onChange={(event) => setTargetScore(event.target.value)}
-          />
-        </Field>
-      </section>
-
-      <section className="card mb-4 p-4">
-        <h2 className="mb-3 text-lg font-black uppercase tracking-wide">Match setup</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field
-            label="Rounds per team"
-            hint="Empty means 1 round."
-            error={showErrors ? errors.rounds : undefined}
+          <div
+            className="card max-h-[90dvh] w-full max-w-md overflow-y-auto p-5"
+            onClick={(event) => event.stopPropagation()}
           >
-            <input
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={20}
-              className={inputClass}
-              data-testid="rounds"
-              value={roundsText}
-              onChange={(event) => setRoundsText(event.target.value)}
-            />
-          </Field>
-          <Field label="Psychic time (seconds)" error={showErrors ? errors.psychicSeconds : undefined}>
-            <input
-              type="number"
-              inputMode="numeric"
-              min={15}
-              max={300}
-              className={inputClass}
-              data-testid="psychic-seconds"
-              value={psychicSeconds}
-              onChange={(event) => setPsychicSeconds(Number(event.target.value))}
-            />
-          </Field>
-          <Field label="Guesser time (seconds)" error={showErrors ? errors.guessSeconds : undefined}>
-            <input
-              type="number"
-              inputMode="numeric"
-              min={15}
-              max={300}
-              className={inputClass}
-              data-testid="guess-seconds"
-              value={guessSeconds}
-              onChange={(event) => setGuessSeconds(Number(event.target.value))}
-            />
-          </Field>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-black uppercase tracking-wide">Settings</h2>
+              <button
+                type="button"
+                className="btn btn-sm"
+                aria-label={BUTTON_ARIA.closeSettings}
+                onClick={() => setSettingsOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <section className="mb-5">
+              <h3 className="mb-3 text-xs font-bold uppercase tracking-widest opacity-60">Rules</h3>
+              <Field
+                label="Target points (optional)"
+                hint={`First team to reach it wins. Max ${rounds * 5} points (${rounds} round${rounds === 1 ? "" : "s"} x 5).`}
+                error={showErrors ? errors.targetScore : undefined}
+              >
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  className={inputClass}
+                  data-testid="target-score"
+                  value={targetScore}
+                  placeholder="no limit"
+                  onChange={(event) => setTargetScore(event.target.value)}
+                />
+              </Field>
+            </section>
+
+            <section className="mb-5">
+              <h3 className="mb-3 text-xs font-bold uppercase tracking-widest opacity-60">Match setup</h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field
+                  label="Rounds per team"
+                  hint="Empty means 1 round."
+                  error={showErrors ? errors.rounds : undefined}
+                >
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={20}
+                    className={inputClass}
+                    data-testid="rounds"
+                    value={roundsText}
+                    onChange={(event) => setRoundsText(event.target.value)}
+                  />
+                </Field>
+                <Field label="Psychic time (seconds)" error={showErrors ? errors.psychicSeconds : undefined}>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={15}
+                    max={300}
+                    className={inputClass}
+                    data-testid="psychic-seconds"
+                    value={psychicSeconds}
+                    onChange={(event) => setPsychicSeconds(Number(event.target.value))}
+                  />
+                </Field>
+                <Field label="Guesser time (seconds)" error={showErrors ? errors.guessSeconds : undefined}>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={15}
+                    max={300}
+                    className={inputClass}
+                    data-testid="guess-seconds"
+                    value={guessSeconds}
+                    onChange={(event) => setGuessSeconds(Number(event.target.value))}
+                  />
+                </Field>
+              </div>
+            </section>
+
+            <section>
+              <h3 className="mb-2 text-xs font-bold uppercase tracking-widest opacity-60">Difficulty</h3>
+              <button
+                type="button"
+                className={`btn btn-sm w-full ${easyMode ? "btn-primary" : ""}`}
+                data-testid="setup-toggle-easy"
+                onClick={() => onEasyModeChange(!easyMode)}
+              >
+                {easyMode ? `✓ ${BUTTON_TEXT.easyMode}` : BUTTON_TEXT.hardMode}
+              </button>
+              <p className="mt-1 text-xs opacity-60">
+                Easy mode shows the 0-10 scale and position readouts.
+              </p>
+            </section>
+          </div>
         </div>
-      </section>
+      )}
 
       {showErrors && errorList.length > 0 && (
         <ul className="card mb-4 flex flex-col gap-1 p-4 text-sm font-bold text-danger">

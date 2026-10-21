@@ -49,7 +49,7 @@ try {
       const badge = document.body.innerText.match(/\\+(\\d)/);
       return { badge: badge ? Number(badge[1]) : null, scores: raw.teams.map((t) => t.score), turn: raw.turnIndex };
     })()`);
-    const expected = diff <= 4.5 ? 5 : diff <= 13.5 ? 3 : diff <= 22.5 ? 1 : 0;
+    const expected = diff <= 5 ? 5 : diff <= 13.5 ? 3 : diff <= 22.5 ? 1 : 0;
     const teamSlot = result.turn % result.scores.length;
     const delta = result.scores[teamSlot] - beforeScores[teamSlot];
     check(

@@ -252,7 +252,7 @@ try {
   check("a target at 0 shows half the spectrum", atZero.length === 3, JSON.stringify(atZero));
   check("a target at 10 shows half the spectrum", atTen.length === 3, JSON.stringify(atTen));
   check("the half spectrum keeps the bullseye band",
-    atZero[0] === "rgb(60, 90, 72)" && atTen[2] === "rgb(60, 90, 72)",
+    atZero[0] === "rgb(82, 108, 84)" && atTen[2] === "rgb(82, 108, 84)",
     JSON.stringify([atZero, atTen]));
 
   console.log("\nconsole errors:", app.errors.length ? app.errors : "none");

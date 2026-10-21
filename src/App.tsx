@@ -231,6 +231,8 @@ export default function App() {
           sources={allSources}
           busy={starting}
           error={startError}
+          easyMode={easyMode}
+          onEasyModeChange={setEasyMode}
         />
       </div>
     );

@@ -18,9 +18,9 @@
   --backdrop-image: none;
   --backdrop-opacity: 0;
   --button-radius: 4px;
-  --button-shadow: 4px 4px 0;
-  --button-shadow-hover: 5px 5px 0;
-  --button-shadow-active: 1px 1px 0;
+  --button-shadow: 0 2px 8px rgba(41, 37, 31, 0.10);
+  --button-shadow-hover: 0 4px 12px rgba(41, 37, 31, 0.14);
+  --button-shadow-active: 0 1px 3px rgba(41, 37, 31, 0.12);
 }
 
 @theme inline {
@@ -64,14 +64,14 @@
   .btn {
     background: var(--surface);
     color: var(--ink);
-    border: 2px solid var(--ink);
-    box-shadow: var(--button-shadow) var(--shadow);
+    border: 1px solid var(--line);
+    box-shadow: var(--button-shadow);
     border-radius: var(--button-radius);
     padding: 0.6rem 1rem;
-    font-weight: 800;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.02em;
-    transition: transform 0.08s, box-shadow 0.08s;
+    transition: transform 0.15s, box-shadow 0.15s;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
@@ -79,24 +79,24 @@
 
   .btn:hover {
     transform: translate(-1px, -1px);
-    box-shadow: var(--button-shadow-hover) var(--shadow);
+    box-shadow: var(--button-shadow-hover);
   }
 
   .btn:active {
-    transform: translate(3px, 3px);
-    box-shadow: var(--button-shadow-active) var(--shadow);
+    transform: translateY(1px);
+    box-shadow: var(--button-shadow-active);
   }
 
   .btn-primary {
     background: var(--accent);
     color: var(--accent-ink);
-    border-color: var(--ink);
+    border-color: var(--accent);
   }
 
   .btn-danger {
     background: var(--danger);
     color: #ffffff;
-    border-color: var(--ink);
+    border-color: var(--danger);
   }
 
   .btn-lg {
@@ -117,9 +117,9 @@
 
   .card {
     background: var(--surface);
-    border: 2px solid var(--ink);
-    border-radius: 10px;
-    box-shadow: 6px 6px 0 var(--shadow);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 5px 18px rgba(41, 37, 31, 0.08);
   }
 
   /* grain sits in a pseudo layer so text inside is never dimmed */
@@ -137,7 +137,7 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)' opacity='0.55'/%3E%3C/svg%3E");
     background-size: 240px 240px;
     background-repeat: repeat;
-    opacity: 0.35;
+    opacity: 0.18;
     mix-blend-mode: multiply;
   }
 
@@ -149,6 +149,7 @@
     pointer-events: none;
     opacity: var(--backdrop-opacity);
     background-image: var(--backdrop-image);
+    background-size: 520px 160px;
     background-repeat: repeat;
   }
 
