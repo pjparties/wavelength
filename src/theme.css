@@ -149,7 +149,7 @@
     pointer-events: none;
     opacity: var(--backdrop-opacity);
     background-image: var(--backdrop-image);
-    background-size: 520px 160px;
+    background-size: 390px 440px;
     background-repeat: repeat;
   }
 

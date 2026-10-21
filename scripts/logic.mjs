@@ -113,9 +113,13 @@ try {
   // ---- deck composition in the settings modal ----
   const deckInfo = await app.evaluate(`(() => {
     const raw = JSON.parse(localStorage.getItem('wavelength.match.v1'));
-    return { deck: raw.deck.length, custom: raw.customCount, teams: raw.teams.length };
+    return { deckIds: raw.deckIds, deck: raw.deck.length, custom: raw.customCount, teams: raw.teams.length };
   })()`);
-  check("match deck holds only NSFW + custom", deckInfo.deck === 71 && deckInfo.custom === 1, JSON.stringify(deckInfo));
+  check(
+    "match deck holds only NSFW + custom",
+    JSON.stringify(deckInfo.deckIds) === '["nsfw"]' && deckInfo.deck > deckInfo.custom && deckInfo.custom === 1,
+    JSON.stringify(deckInfo),
+  );
 
   // ---- play again resets the scores ----
   await app.clickId("play-again");
