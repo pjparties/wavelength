@@ -54,6 +54,11 @@ test("targets can reach both ends of the scale", () => {
   assert.ok(max > 175, `no target near 180: ${max}`);
 });
 
+test("target generation includes the exact endpoints", () => {
+  assert.equal(randomTarget(() => 0), 0);
+  assert.equal(randomTarget(() => 0.999999), 180);
+});
+
 test("clamp respects bounds", () => {
   assert.equal(clamp(-10, -25, 205), -10);
   assert.equal(clamp(-100, -25, 205), -25);

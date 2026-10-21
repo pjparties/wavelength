@@ -37,9 +37,9 @@ export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-/** Secret target position for a round. */
-export function randomTarget(): number {
-  return TARGET_MIN + Math.random() * (TARGET_MAX - TARGET_MIN);
+/** Secret target position for a round, including both scale endpoints. */
+export function randomTarget(random: () => number = Math.random): number {
+  return TARGET_MIN + Math.floor(random() * (TARGET_MAX - TARGET_MIN + 1));
 }
 
 /** Points for a needle at `needle` against a target at `target`. */
