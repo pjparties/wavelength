@@ -16,8 +16,8 @@ import {
 
 test("score zones: 5 / 3 / 1 / 0", () => {
   assert.equal(scoreFor(90, 90), 5);
-  assert.equal(scoreFor(90 + 4.5, 90), 5);
-  assert.equal(scoreFor(90 + 4.6, 90), 3);
+  assert.equal(scoreFor(90 + 5, 90), 5);
+  assert.equal(scoreFor(90 + 5.1, 90), 3);
   assert.equal(scoreFor(90 + 13.5, 90), 3);
   assert.equal(scoreFor(90 + 13.6, 90), 1);
   assert.equal(scoreFor(90 + 22.5, 90), 1);
@@ -26,10 +26,11 @@ test("score zones: 5 / 3 / 1 / 0", () => {
 });
 
 test("a miss is reachable from both ends of the scale", () => {
-  // the needle stops at 0 and 10 and the target never lands closer than 21
-  // degrees to an end, so the far end of the scale is always a miss.
+  // the needle stops at 0 and 10, so the far end of the scale from the target
+  // is always a miss.
   assert.equal(scoreFor(0, 159), 0);
   assert.equal(scoreFor(180, 21), 0);
+  assert.equal(scoreFor(180, 0), 0);
   assert.ok(scoreFor(0, 21) > 0);
 });
 
@@ -39,11 +40,18 @@ test("the needle cannot leave the 0-10 scale", () => {
   assert.equal(clamp(90, NEEDLE_MIN, NEEDLE_MAX), 90);
 });
 
-test("targets stay inside the 21-159 degree band", () => {
+test("targets can reach both ends of the scale", () => {
+  let min = Infinity;
+  let max = -Infinity;
   for (let i = 0; i < 500; i++) {
     const target = randomTarget();
-    assert.ok(target >= 21 && target <= 159, `target out of range: ${target}`);
+    assert.ok(target >= 0 && target <= 180, `target out of range: ${target}`);
+    min = Math.min(min, target);
+    max = Math.max(max, target);
   }
+  // the ends must be reachable, otherwise the banded spectrum is never half
+  assert.ok(min < 5, `no target near 0: ${min}`);
+  assert.ok(max > 175, `no target near 180: ${max}`);
 });
 
 test("clamp respects bounds", () => {

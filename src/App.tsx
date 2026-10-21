@@ -2,8 +2,8 @@ import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import Dial from "./dial.tsx";
 import SetupScreen from "./setup.tsx";
 import { apiBaseUrl, defaultDeckSources, loadDeck, loadRemoteDeckSources } from "./deck-source.ts";
-import { DIWALI_BACKGROUND } from "./diwali.ts";
 import { playSfx, setSoundEnabled } from "./audio.ts";
+import { BUTTON_ARIA, BUTTON_TEXT } from "./ui-copy.ts";
 import {
   buildMatch,
   formatClock,
@@ -225,7 +225,6 @@ export default function App() {
           className="diwali-bg"
           aria-hidden="true"
           data-testid="diwali-bg"
-          style={{ backgroundImage: DIWALI_BACKGROUND }}
         />
         <SetupScreen
           onStart={handleStart}
@@ -251,7 +250,6 @@ export default function App() {
         className="diwali-bg"
         aria-hidden="true"
         data-testid="diwali-bg"
-        style={{ backgroundImage: DIWALI_BACKGROUND }}
       />
       <header className="sticky top-0 z-30 border-b-2 border-line bg-paper/95 backdrop-blur">
         <div className="mx-auto flex max-w-xl items-center justify-between gap-2 px-3 py-2">
@@ -259,7 +257,7 @@ export default function App() {
             type="button"
             className="title shrink-0 text-sm tracking-wide"
             data-testid="home"
-            aria-label="Wavelength home"
+            aria-label={BUTTON_ARIA.home}
             onClick={() => setHomePromptOpen(true)}
           >
             WAVELENGTH
@@ -285,7 +283,7 @@ export default function App() {
               className="btn btn-sm shrink-0"
               data-testid="toggle-timer"
               onClick={togglePause}
-              aria-label={paused ? "Resume timer" : "Pause timer"}
+              aria-label={paused ? BUTTON_ARIA.resumeTimer : BUTTON_ARIA.pauseTimer}
             >
               {paused ? "▶" : "❚❚"}
             </button>
@@ -294,7 +292,7 @@ export default function App() {
               className="btn btn-sm shrink-0"
               data-testid="settings"
               onClick={() => setSettingsOpen(true)}
-              aria-label="Settings"
+              aria-label={BUTTON_ARIA.settings}
             >
               ⚙
             </button>
@@ -330,32 +328,6 @@ export default function App() {
           </div>
         ) : (
           <>
-            <section className="card mb-3 p-4">
-              <div className="flex items-center gap-3">
-                <p className="flex-1 text-center text-base font-black uppercase leading-tight sm:text-xl">
-                  {card.left}
-                </p>
-                <svg viewBox="0 0 120 12" className="h-3 w-24 shrink-0 sm:w-40" aria-hidden="true">
-                  <line x1="6" y1="6" x2="114" y2="6" stroke="currentColor" strokeWidth="2" />
-                  <path d="M6 1 L16 6 L6 11 Z" fill="currentColor" />
-                  <path d="M114 1 L104 6 L114 11 Z" fill="currentColor" />
-                </svg>
-                <p className="flex-1 text-center text-base font-black uppercase leading-tight sm:text-xl">
-                  {card.right}
-                </p>
-              </div>
-              {match.phase === "psychic" && easyMode && (
-                <p className="mono-num mt-3 text-center text-sm font-bold opacity-80">
-                  Target sits at {(toScale(match.targetAngle)).toFixed(1)} / 10
-                </p>
-              )}
-              {match.phase === "guess" && easyMode && (
-                <p className="mono-num mt-3 text-center text-sm font-bold opacity-80">
-                  Needle at {toScale(match.needleAngle).toFixed(1)} / 10
-                </p>
-              )}
-            </section>
-
             <section className="card relative mb-3 p-3" data-testid="board">
               <Dial
                 needle={needleVisible ? match.needleAngle : null}
@@ -380,6 +352,31 @@ export default function App() {
                     +{match.lastPoints}
                   </span>
                 ))}
+              <div className="mt-3 pt-3" data-testid="spectrum-card">
+                <div className="flex items-center gap-3">
+                  <p className="flex-1 text-center text-base font-black uppercase leading-tight sm:text-xl">
+                    {card.left}
+                  </p>
+                  <svg viewBox="0 0 120 12" className="h-3 w-24 shrink-0 sm:w-40" aria-hidden="true">
+                    <line x1="6" y1="6" x2="114" y2="6" stroke="currentColor" strokeWidth="2" />
+                    <path d="M6 1 L16 6 L6 11 Z" fill="currentColor" />
+                    <path d="M114 1 L104 6 L114 11 Z" fill="currentColor" />
+                  </svg>
+                  <p className="flex-1 text-center text-base font-black uppercase leading-tight sm:text-xl">
+                    {card.right}
+                  </p>
+                </div>
+                {match.phase === "psychic" && easyMode && (
+                  <p className="mono-num mt-3 text-center text-sm font-bold opacity-80">
+                    Target sits at {(toScale(match.targetAngle)).toFixed(1)} / 10
+                  </p>
+                )}
+                {match.phase === "guess" && easyMode && (
+                  <p className="mono-num mt-3 text-center text-sm font-bold opacity-80">
+                    Needle at {toScale(match.needleAngle).toFixed(1)} / 10
+                  </p>
+                )}
+              </div>
             </section>
 
             <section className="card mb-3 p-4 text-center">
@@ -398,7 +395,7 @@ export default function App() {
                       if (match) resetTimer(match.guessSeconds);
                     }}
                   >
-                    Hide target — pass to guessers
+                    {BUTTON_TEXT.hideTarget}
                   </button>
                 </>
               )}
@@ -414,7 +411,7 @@ export default function App() {
                     data-testid="reveal"
                     onClick={handleReveal}
                   >
-                    Lock in &amp; reveal
+                    {BUTTON_TEXT.lockIn}
                   </button>
                 </>
               )}
@@ -437,7 +434,9 @@ export default function App() {
                     data-testid="next"
                     onClick={handleNext}
                   >
-                    {match.winner || turnIndex + 1 >= turns ? "See results" : "Next round"}
+                    {match.winner || turnIndex + 1 >= turns
+                      ? BUTTON_TEXT.seeResults
+                      : BUTTON_TEXT.nextRound}
                   </button>
                 </>
               )}
@@ -474,7 +473,7 @@ export default function App() {
                         data-testid="play-again"
                         onClick={() => handleStart(lastConfig)}
                       >
-                        Play again
+                        {BUTTON_TEXT.playAgain}
                       </button>
                     )}
                     <button
@@ -483,7 +482,7 @@ export default function App() {
                       data-testid="new-setup"
                       onClick={() => dispatch({ type: "abort" })}
                     >
-                      New setup
+                      {BUTTON_TEXT.newSetup}
                     </button>
                   </div>
                 </>
@@ -542,7 +541,7 @@ export default function App() {
                 data-testid="home-cancel"
                 onClick={() => setHomePromptOpen(false)}
               >
-                Keep playing
+                {BUTTON_TEXT.keepPlaying}
               </button>
               <button
                 type="button"
@@ -553,7 +552,7 @@ export default function App() {
                   dispatch({ type: "abort" });
                 }}
               >
-                Leave match
+                {BUTTON_TEXT.leaveMatch}
               </button>
             </div>
           </div>
@@ -573,6 +572,7 @@ export default function App() {
                 className="btn btn-sm"
                 data-testid="close-settings"
                 onClick={() => setSettingsOpen(false)}
+                aria-label={BUTTON_ARIA.closeSettings}
               >
                 ✕
               </button>
@@ -585,7 +585,7 @@ export default function App() {
               data-testid="toggle-sound"
               onClick={() => setSoundOn((value) => !value)}
             >
-              {soundOn ? "✓ Sound on" : "Sound off"}
+              {soundOn ? `✓ ${BUTTON_TEXT.soundOn}` : BUTTON_TEXT.soundOff}
             </button>
 
             <h3 className="mb-2 mt-4 text-xs font-bold uppercase tracking-widest opacity-60">
@@ -597,7 +597,7 @@ export default function App() {
               data-testid="toggle-easy"
               onClick={() => setEasyMode((value) => !value)}
             >
-              {easyMode ? "✓ Easy mode" : "Hard mode"}
+              {easyMode ? `✓ ${BUTTON_TEXT.easyMode}` : BUTTON_TEXT.hardMode}
             </button>
             <p className="mt-1 text-xs opacity-60">
               Easy mode puts the 0-10 scale back on the dial and shows where the needle and
@@ -640,7 +640,7 @@ export default function App() {
                 dispatch({ type: "abort" });
               }}
             >
-              Abort match
+              {BUTTON_TEXT.abortMatch}
             </button>
           </div>
         </div>

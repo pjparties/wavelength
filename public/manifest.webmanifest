@@ -1,0 +1,10 @@
+{
+  "name": "Wavelength",
+  "short_name": "Wavelength",
+  "description": "Offline pass-and-play Wavelength party game.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F7F3E9",
+  "theme_color": "#F7F3E9",
+  "lang": "en"
+}

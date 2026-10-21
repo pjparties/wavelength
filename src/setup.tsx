@@ -7,6 +7,7 @@ import {
 } from "./game.ts";
 import type { SetupConfig, SetupErrors } from "./types.ts";
 import type { DeckSource } from "./types.ts";
+import { BUTTON_TEXT } from "./ui-copy.ts";
 
 export type SetupScreenProps = {
   onStart: (config: SetupConfig) => void | Promise<void>;
@@ -133,7 +134,7 @@ export default function SetupScreen({
               ])
             }
           >
-            + Add team
+            {BUTTON_TEXT.addTeam}
           </button>
         </div>
 
@@ -197,7 +198,7 @@ export default function SetupScreen({
             onClick={() => setUseCustom((value) => !value)}
             className={`btn ${useCustom ? "btn-primary" : ""}`}
           >
-            {useCustom ? "✓ " : ""}Custom spectra
+            {useCustom ? "✓ " : ""}{BUTTON_TEXT.customSpectra}
           </button>
         </div>
         {errors.decks && showErrors && (
@@ -250,7 +251,7 @@ export default function SetupScreen({
                 onClick={() => setCustomFirst(true)}
                 className={`btn ${customFirst ? "btn-primary" : ""}`}
               >
-                {customFirst ? "✓ " : ""}Play custom first
+                {customFirst ? "✓ " : ""}{BUTTON_TEXT.customFirst}
               </button>
               <button
                 type="button"
@@ -258,7 +259,7 @@ export default function SetupScreen({
                 onClick={() => setCustomFirst(false)}
                 className={`btn ${!customFirst ? "btn-primary" : ""}`}
               >
-                {!customFirst ? "✓ " : ""}Shuffle into deck
+                {!customFirst ? "✓ " : ""}{BUTTON_TEXT.customShuffle}
               </button>
             </div>
           </div>
@@ -346,7 +347,7 @@ export default function SetupScreen({
         onClick={start}
         disabled={busy}
       >
-        {busy ? "Loading questions…" : "Start match"}
+        {busy ? BUTTON_TEXT.loadingQuestions : BUTTON_TEXT.startMatch}
       </button>
       {error && <p className="mt-2 text-center text-sm font-bold text-danger">{error}</p>}
       <p className="mt-3 text-center text-xs opacity-60" data-testid="deck-summary">

@@ -1,0 +1,30 @@
+export const BUTTON_TEXT = {
+  addTeam: "+ Add team",
+  customSpectra: "Custom spectra",
+  customFirst: "Play custom first",
+  customShuffle: "Shuffle into deck",
+  startMatch: "Start match",
+  loadingQuestions: "Loading questions...",
+  psychic: "I'm the psychic - show the card",
+  hideTarget: "Hide target - pass to guessers",
+  lockIn: "Lock in & reveal",
+  nextRound: "Next round",
+  seeResults: "See results",
+  playAgain: "Play again",
+  newSetup: "New setup",
+  keepPlaying: "Keep playing",
+  leaveMatch: "Leave match",
+  soundOn: "Sound on",
+  soundOff: "Sound off",
+  easyMode: "Easy mode",
+  hardMode: "Hard mode",
+  abortMatch: "Abort match",
+} as const;
+
+export const BUTTON_ARIA = {
+  home: "Wavelength home",
+  pauseTimer: "Pause timer",
+  resumeTimer: "Resume timer",
+  settings: "Settings",
+  closeSettings: "Close settings",
+} as const;

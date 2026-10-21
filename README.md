@@ -15,7 +15,8 @@ npm run preview  # serve the built file on http://localhost:3000
 ```
 
 `dist/index.html` is fully self-contained: no network, no fonts, no images. Copy it to a
-phone, AirDrop it, open it in a browser, play.
+phone, AirDrop it, open it in a browser, play. When served over HTTP(S), the generated
+manifest and service worker also make it installable and cache the app for later offline use.
 
 ## Play
 
@@ -90,8 +91,8 @@ shape and the UI never sees JSON:
 Both `{"items": [...]}` and a bare `[...]` are accepted, so a plain static file works
 as well as a real API. A backend without a catalogue keeps working through the legacy
 `GET /spectra` and shows up as one "Community" deck. Without `?api=`, the app stays
-fully offline; a backend that is down shows an error and never blocks the built-in
-decks.
+fully offline; remote requests have an 8-second timeout, and a backend that is down
+shows an error without blocking the built-in decks. HTTPS pages require an HTTPS API.
 
 The built-in questions stay easy to edit: `src/decks.ts` is a plain array of
 `{ left, right }` rows, and the domain type is the same shape as the DTO.
@@ -121,3 +122,10 @@ npm run ci         # everything above, in order - this is what CI runs
 
 `npm run verify` needs Google Chrome installed; it writes screenshots to `./shots`.
 CI runs `npm run ci` on every push (`.github/workflows/ci.yml`).
+
+## Deploy to GitHub Pages
+
+The repository includes a Pages workflow. Push the `main` branch, then enable
+**Settings → Pages → GitHub Actions** once in the repository. The workflow uploads
+`dist/` as a static site; no server or runtime configuration is required for the
+built-in decks. A remote deck API must be HTTPS and allow the Pages origin in CORS.

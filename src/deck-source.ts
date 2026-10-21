@@ -3,15 +3,31 @@ import { parseDeckList, parseSpectrumList } from "./dto.ts";
 import type { DeckDTO } from "./dto.ts";
 import type { DeckSource, Spectrum } from "./types.ts";
 
+const REQUEST_TIMEOUT_MS = 8_000;
+
 /** A deck that ships with the app. Edit src/decks.ts to change its questions. */
 export function builtinSource(id: string, label: string, spectra: Spectrum[]): DeckSource {
   return { id, label, size: spectra.length, load: async () => spectra };
 }
 
 async function fetchJson(url: string): Promise<unknown> {
-  const res = await fetch(url, { headers: { accept: "application/json" } });
-  if (!res.ok) throw new Error(`server answered ${res.status}`);
-  return res.json();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      headers: { accept: "application/json" },
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`server answered ${res.status}`);
+    return res.json();
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("server request timed out");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 /**
@@ -54,20 +70,32 @@ export async function loadRemoteDeckSources(baseUrl: string): Promise<DeckSource
 
 /** Backend base URL: ?api=... in the address bar wins, else VITE_API_URL at build time. */
 export function apiBaseUrl(): string | null {
+  let configured: string | null = null;
   try {
     const fromQuery = new URL(window.location.href).searchParams.get("api");
-    if (fromQuery) return fromQuery;
+    if (fromQuery) configured = fromQuery;
   } catch {
     // no window (unit tests)
   }
-  return (import.meta.env?.VITE_API_URL as string | undefined) || null;
+  configured ??= (import.meta.env?.VITE_API_URL as string | undefined) || null;
+  if (!configured) return null;
+  try {
+    const url = new URL(configured);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    if (typeof window !== "undefined" && window.location.protocol === "https:" && url.protocol !== "https:") {
+      return null;
+    }
+    return url.toString();
+  } catch {
+    return null;
+  }
 }
 
 /** The decks the app ships with. Backend decks are added on top of these. */
 export function defaultDeckSources(): DeckSource[] {
   return [
-    builtinSource("sfw", "SFW", SFW_SPECTRUMS),
-    builtinSource("nsfw", "NSFW", NSFW_SPECTRUMS),
+    builtinSource("sfw", "Plain", SFW_SPECTRUMS),
+    builtinSource("nsfw", "Spicy (NSFW)", NSFW_SPECTRUMS),
   ];
 }
 

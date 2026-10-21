@@ -229,6 +229,32 @@ try {
   check("confirming leaves the match for the home screen", (await app.text()).includes("start match"));
   await app.shot("14-back-home");
 
+  // ---- the banded spectrum is half when the target sits at an end ----
+  await app.clickId("start-match");
+  const bandsAt = async (angle) => {
+    await app.evaluate(`(() => {
+      const raw = JSON.parse(localStorage.getItem('wavelength.match.v1'));
+      raw.targetAngle = ${angle};
+      localStorage.setItem('wavelength.match.v1', JSON.stringify(raw));
+      return true;
+    })()`);
+    await app.reload();
+    if (await app.evaluate(`!!document.querySelector('[data-testid="psychic"]')`)) {
+      await app.clickId("psychic");
+    }
+    return app.evaluate(`(() => {
+      const svg = document.querySelector('svg[aria-label="Spectrum dial"]');
+      return [...svg.querySelectorAll('[data-target] path')].map((p) => getComputedStyle(p).fill);
+    })()`);
+  };
+  const atZero = await bandsAt(0);
+  const atTen = await bandsAt(180);
+  check("a target at 0 shows half the spectrum", atZero.length === 3, JSON.stringify(atZero));
+  check("a target at 10 shows half the spectrum", atTen.length === 3, JSON.stringify(atTen));
+  check("the half spectrum keeps the bullseye band",
+    atZero[0] === "rgb(60, 90, 72)" && atTen[2] === "rgb(60, 90, 72)",
+    JSON.stringify([atZero, atTen]));
+
   console.log("\nconsole errors:", app.errors.length ? app.errors : "none");
   if (app.errors.length) process.exitCode = 1;
 } catch (error) {

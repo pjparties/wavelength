@@ -1,20 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  --paper: #EDE3D4;
-  --surface: #F7F0E3;
-  --surface-2: #E2D5BE;
-  --ink: #2B2118;
-  --ink-soft: #7A6A55;
-  --line: #2B2118;
-  --accent: #A2542B;
-  --accent-ink: #FFF8EE;
-  --danger: #8C2F21;
-  --zone-5: #3C5A48;
-  --zone-3: #C89B3C;
-  --zone-1: #A2542B;
-  --zone-0: #B5A88F;
-  --shadow: #2B2118;
+  --paper: transparent;
+  --surface: transparent;
+  --surface-2: transparent;
+  --ink: currentColor;
+  --ink-soft: currentColor;
+  --line: currentColor;
+  --accent: currentColor;
+  --accent-ink: currentColor;
+  --danger: currentColor;
+  --zone-5: currentColor;
+  --zone-3: currentColor;
+  --zone-1: currentColor;
+  --zone-0: currentColor;
+  --shadow: currentColor;
+  --backdrop-image: none;
+  --backdrop-opacity: 0;
+  --button-radius: 4px;
+  --button-shadow: 4px 4px 0;
+  --button-shadow-hover: 5px 5px 0;
+  --button-shadow-active: 1px 1px 0;
 }
 
 @theme inline {
@@ -59,8 +65,8 @@
     background: var(--surface);
     color: var(--ink);
     border: 2px solid var(--ink);
-    box-shadow: 4px 4px 0 var(--shadow);
-    border-radius: 4px;
+    box-shadow: var(--button-shadow) var(--shadow);
+    border-radius: var(--button-radius);
     padding: 0.6rem 1rem;
     font-weight: 800;
     text-transform: uppercase;
@@ -73,12 +79,12 @@
 
   .btn:hover {
     transform: translate(-1px, -1px);
-    box-shadow: 5px 5px 0 var(--shadow);
+    box-shadow: var(--button-shadow-hover) var(--shadow);
   }
 
   .btn:active {
     transform: translate(3px, 3px);
-    box-shadow: 1px 1px 0 var(--shadow);
+    box-shadow: var(--button-shadow-active) var(--shadow);
   }
 
   .btn-primary {
@@ -141,7 +147,8 @@
     inset: 0;
     z-index: 0;
     pointer-events: none;
-    opacity: 0.4;
+    opacity: var(--backdrop-opacity);
+    background-image: var(--backdrop-image);
     background-repeat: repeat;
   }
 

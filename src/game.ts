@@ -11,13 +11,14 @@ export type { Action, Match, SetupConfig, SetupErrors, Spectrum, TeamConfig };
 
 /** Dial geometry in "arc degrees": 0 = far left end of the arc, 90 = top, 180 = far right end. */
 export const ARC_DEGREES = 180;
-export const TARGET_MIN = 21;
-export const TARGET_MAX = 159;
+/** The target may sit anywhere on the scale, ends included: at an end the banded spectrum is only half. */
+export const TARGET_MIN = 0;
+export const TARGET_MAX = 180;
 /** The needle stays on the scale: it may not go below 0 or above 10. */
 export const NEEDLE_MIN = 0;
 export const NEEDLE_MAX = 180;
 
-export const ZONE_CORE = 4.5;
+export const ZONE_CORE = 5;
 export const ZONE_INNER = 13.5;
 export const ZONE_OUTER = 22.5;
 
