@@ -75,9 +75,61 @@ export function clamp(value: number, min: number, max: number): number {
 }
 
 /** Secret target position for a round, including both scale endpoints. */
-export function randomTarget(random: () => number = Math.random): number {
-  return TARGET_MIN + Math.floor(random() * (TARGET_MAX - TARGET_MIN + 1));
+/**
+ * Target draw that curates variety: the scale is split into five sectors and a
+ * shuffled bag hands each one out once before any repeats. Consecutive targets
+ * also stay at least 10% of the scale apart, which keeps adjacent clues from
+ * landing on nearly the same spot.
+ */
+export const TARGET_ZONES = 5;
+export const MIN_TARGET_GAP = ARC_DEGREES / 10;
+export type TargetDraw = { angle: number; bag: number[] };
+
+function zoneOf(angle: number): number {
+  return Math.min(TARGET_ZONES - 1, Math.floor(angle / (ARC_DEGREES / TARGET_ZONES)));
 }
+
+function shuffledZones(random: () => number): number[] {
+  const zones = Array.from({ length: TARGET_ZONES }, (_, i) => i);
+  for (let i = zones.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [zones[i], zones[j]] = [zones[j], zones[i]];
+  }
+  return zones;
+}
+
+export function drawTarget(
+  previous: number | null,
+  bag: number[],
+  random: () => number = Math.random,
+): TargetDraw {
+  const fresh = bag.length === 0;
+  const pool = fresh ? shuffledZones(random) : [...bag];
+  if (fresh && previous !== null) {
+    // a new bag must not open with the sector that just played; all five
+    // sectors are in a fresh bag, so index 0 holds a different one
+    if (pool[pool.length - 1] === zoneOf(previous)) {
+      [pool[pool.length - 1], pool[0]] = [pool[0], pool[pool.length - 1]];
+    }
+  }
+
+  const zone = pool[pool.length - 1];
+  const width = ARC_DEGREES / TARGET_ZONES;
+  const lo = Math.round(zone * width);
+  const hi = zone === TARGET_ZONES - 1 ? TARGET_MAX : Math.round((zone + 1) * width) - 1;
+  const allowed: number[] = [];
+  const every: number[] = [];
+  for (let angle = lo; angle <= hi; angle++) {
+    every.push(angle);
+    if (previous === null || Math.abs(angle - previous) >= MIN_TARGET_GAP) allowed.push(angle);
+  }
+  const choices = allowed.length > 0 ? allowed : every;
+  return {
+    angle: choices[Math.floor(random() * choices.length)],
+    bag: pool.slice(0, -1),
+  };
+}
+
 
 /** Points for a needle at `needle` against a target at `target`. */
 export function scoreFor(needle: number, target: number): number {
@@ -146,6 +198,7 @@ export function buildDeck(base: Spectrum[], custom: Spectrum[], customFirst: boo
 
 /** Start a match from a validated setup and the questions that were loaded for it. */
 export function buildMatch(config: SetupConfig, spectra: Spectrum[]): Match {
+  const first = drawTarget(null, []);
   return {
     teams: config.teams.map((team) => ({ ...team, score: 0 })),
     rounds: config.rounds,
@@ -157,7 +210,8 @@ export function buildMatch(config: SetupConfig, spectra: Spectrum[]): Match {
     targetScore: config.targetScore,
     turnIndex: 0,
     cardIndex: 0,
-    targetAngle: randomTarget(),
+    targetAngle: first.angle,
+    targetBag: first.bag,
     needleAngle: 90,
     phase: "psychic_pass",
     lastPoints: null,
@@ -202,12 +256,14 @@ export function reducer(state: Match | null, action: Action): Match | null {
       if (state.winner || nextIndex >= totalTurns(state.teams.length, state.rounds)) {
         return { ...state, phase: "gameover" };
       }
+      const target = drawTarget(state.targetAngle, state.targetBag);
       return {
         ...state,
         turnIndex: nextIndex,
         cardIndex: state.cardIndex + 1,
         phase: "psychic_pass",
-        targetAngle: randomTarget(),
+        targetAngle: target.angle,
+        targetBag: target.bag,
         needleAngle: 90,
         lastPoints: null,
         deck: action.deck ?? state.deck,
@@ -217,11 +273,13 @@ export function reducer(state: Match | null, action: Action): Match | null {
       if (state.phase !== "psychic") return state;
       const index = state.turnIndex % state.teams.length;
       if ((state.skipsUsed[index] ?? 0) >= state.maxSkipsPerTeam) return state;
+      const target = drawTarget(state.targetAngle, state.targetBag);
       return {
         ...state,
         cardIndex: state.cardIndex + 1,
         skipsUsed: state.skipsUsed.map((used, i) => (i === index ? used + 1 : used)),
-        targetAngle: randomTarget(),
+        targetAngle: target.angle,
+        targetBag: target.bag,
         needleAngle: 90,
         lastPoints: null,
         deck: action.deck ?? state.deck,

@@ -53,6 +53,7 @@ function loadMatch(): Match | null {
       maxSkipsPerTeam: parsed.maxSkipsPerTeam ?? DEFAULT_MAX_SKIPS,
       skipsUsed: parsed.skipsUsed ?? parsed.teams.map(() => 0),
       cardIndex: parsed.cardIndex ?? parsed.turnIndex,
+      targetBag: parsed.targetBag ?? [],
       remainingMs:
         typeof parsed.remainingMs === "number" ? Math.max(0, parsed.remainingMs) : psychicSeconds * 1000,
     };

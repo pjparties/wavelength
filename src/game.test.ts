@@ -5,15 +5,17 @@ import {
   buildMatch,
   clamp,
   DEFAULT_MAX_SKIPS,
+  drawTarget,
   formatClock,
+  MIN_TARGET_GAP,
   NEEDLE_MAX,
   NEEDLE_MIN,
   parseCustomSpectrum,
   parseCustomSpectra,
-  randomTarget,
   reducer,
   scoreFor,
   shuffle,
+  TARGET_ZONES,
   validateSetup,
   zoneBands,
 } from "./game.ts";
@@ -64,13 +66,17 @@ test("the needle cannot leave the 0-10 scale", () => {
 });
 
 test("targets can reach both ends of the scale", () => {
+  const random = mulberry32(3);
+  let bag: number[] = [];
+  let previous: number | null = null;
   let min = Infinity;
   let max = -Infinity;
   for (let i = 0; i < 500; i++) {
-    const target = randomTarget();
-    assert.ok(target >= 0 && target <= 180, `target out of range: ${target}`);
-    min = Math.min(min, target);
-    max = Math.max(max, target);
+    const draw = drawTarget(previous, bag, random);
+    bag = draw.bag;
+    previous = draw.angle;
+    min = Math.min(min, draw.angle);
+    max = Math.max(max, draw.angle);
   }
   // the ends must be reachable, otherwise the banded spectrum is never half
   assert.ok(min < 5, `no target near 0: ${min}`);
@@ -78,8 +84,98 @@ test("targets can reach both ends of the scale", () => {
 });
 
 test("target generation includes the exact endpoints", () => {
-  assert.equal(randomTarget(() => 0), 0);
-  assert.equal(randomTarget(() => 0.999999), 180);
+  assert.equal(drawTarget(null, [], () => 0).angle, 0);
+  assert.equal(drawTarget(null, [], () => 0.999999).angle, 180);
+});
+
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const targetZone = (angle: number) =>
+  Math.min(TARGET_ZONES - 1, Math.floor((angle / 180) * TARGET_ZONES));
+
+test("the target bag visits every sector before repeating", () => {
+  const random = mulberry32(7);
+  let bag: number[] = [];
+  let previous: number | null = null;
+  const zones: number[] = [];
+  for (let i = 0; i < 40; i++) {
+    const draw = drawTarget(previous, bag, random);
+    bag = draw.bag;
+    previous = draw.angle;
+    zones.push(targetZone(draw.angle));
+  }
+  for (let start = 0; start < zones.length; start += TARGET_ZONES) {
+    assert.equal(
+      new Set(zones.slice(start, start + TARGET_ZONES)).size,
+      TARGET_ZONES,
+      zones.join(","),
+    );
+  }
+  for (let i = 1; i < zones.length; i++) {
+    assert.notEqual(zones[i], zones[i - 1], `sector repeated: ${zones.join(",")}`);
+  }
+});
+
+test("consecutive targets stay 10% of the scale apart", () => {
+  const random = mulberry32(11);
+  let bag: number[] = [];
+  let previous: number | null = null;
+  for (let i = 0; i < 300; i++) {
+    const draw = drawTarget(previous, bag, random);
+    bag = draw.bag;
+    if (previous !== null) {
+      assert.ok(
+        Math.abs(draw.angle - previous) >= MIN_TARGET_GAP,
+        `${previous} -> ${draw.angle}`,
+      );
+    }
+    previous = draw.angle;
+  }
+});
+
+test("a fresh bag does not open on the sector just played", () => {
+  for (let zone = 0; zone < TARGET_ZONES; zone++) {
+    const previous = zone * (180 / TARGET_ZONES) + 17;
+    for (let seed = 0; seed < 20; seed++) {
+      const draw = drawTarget(previous, [], mulberry32(seed + zone * 31));
+      assert.notEqual(targetZone(draw.angle), zone, `${zone} -> ${draw.angle}`);
+    }
+  }
+});
+
+test("target sectors tile the scale without gaps or overlaps", () => {
+  for (let zone = 0; zone < TARGET_ZONES; zone++) {
+    const lo = drawTarget(null, [zone], () => 0).angle;
+    const hi = drawTarget(null, [zone], () => 0.999999).angle;
+    assert.equal(lo, zone * 36, `zone ${zone} starts at ${lo}`);
+    assert.equal(hi, zone === TARGET_ZONES - 1 ? 180 : lo + 35, `zone ${zone} ends at ${hi}`);
+  }
+});
+
+test("a match carries the target bag from turn to turn", () => {
+  let match = buildMatch(setupConfig({ rounds: 5 }), [{ left: "a", right: "b" }]);
+  assert.equal(match.targetBag.length, TARGET_ZONES - 1);
+  const zones = [targetZone(match.targetAngle)];
+  for (let i = 0; i < 9; i++) {
+    match = reducer(match, { type: "next" })!;
+    zones.push(targetZone(match.targetAngle));
+  }
+  for (let start = 0; start < zones.length; start += TARGET_ZONES) {
+    assert.equal(
+      new Set(zones.slice(start, start + TARGET_ZONES)).size,
+      TARGET_ZONES,
+      zones.join(","),
+    );
+  }
 });
 
 test("clamp respects bounds", () => {

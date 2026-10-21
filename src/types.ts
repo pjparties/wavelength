@@ -57,6 +57,8 @@ export type Match = {
   /** Index into the deck for the card in play; a skip advances it without the turn. */
   cardIndex: number;
   targetAngle: number;
+  /** Target sectors still in the bag; an empty bag refills on the next draw. */
+  targetBag: number[];
   needleAngle: number;
   phase: Phase;
   lastPoints: number | null;
