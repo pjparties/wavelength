@@ -35,7 +35,7 @@ try {
   // ---- valid target score of 5 with 1 round is accepted ----
   await app.setValueId("target-score", "5");
   // custom spectrum, NSFW-only deck
-  await app.clickId("custom-toggle");
+  await app.clickId("deck-custom");
   await app.setValueId("custom-spectra", "Total Cringe : Pure Masterpiece");
   await app.clickId("deck-sfw");
   await app.clickId("deck-nsfw");

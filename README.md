@@ -36,7 +36,7 @@ paper grain) with an ASCII diwali backdrop.
 
 ## Custom spectra
 
-Tick **Add my own spectra** in the setup screen to open the text box, then one per line:
+Pick **Custom spectra** in the deck list to open the text box, then one per line:
 
 ```
 Total Cringe : Pure Masterpiece

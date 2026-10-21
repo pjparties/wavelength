@@ -69,6 +69,7 @@ export default function App() {
   const [match, dispatch] = useReducer(reducer, null, loadMatch);
   const [soundOn, setSoundOn] = useState(() => safeGet(SOUND_KEY) !== "off");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [homePromptOpen, setHomePromptOpen] = useState(false);
   const [remaining, setRemaining] = useState(60_000);
   const [paused, setPaused] = useState(false);
   const deadlineRef = useRef(0);
@@ -138,7 +139,9 @@ export default function App() {
     setStartError(null);
     try {
       const spectra = await loadDeck(sources, config.decks);
-      if (spectra.length === 0) throw new Error("No questions available");
+      if (spectra.length === 0 && config.custom.length === 0) {
+        throw new Error("No questions available");
+      }
       setLastConfig(config);
       playSfx("lock");
       dispatch({ type: "start", match: buildMatch(config, spectra) });
@@ -226,6 +229,15 @@ export default function App() {
       />
       <header className="sticky top-0 z-30 border-b-2 border-line bg-paper/95 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-3 py-2">
+          <button
+            type="button"
+            className="title shrink-0 text-sm tracking-wide"
+            data-testid="home"
+            aria-label="Wavelength home"
+            onClick={() => setHomePromptOpen(true)}
+          >
+            WAVELENGTH
+          </button>
           <div className="flex min-w-0 items-center gap-2">
             <span
               className="h-3 w-3 shrink-0 rounded-full border border-line"
@@ -235,8 +247,6 @@ export default function App() {
             <span className="mono-num shrink-0 text-xs opacity-60">
               {turnIndex + 1}/{turns}
             </span>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
             <span
               className={`mono-num rounded-md border-2 border-line px-2 py-0.5 text-sm font-bold ${
                 timedOut ? "timer-urgent" : ""
@@ -246,7 +256,7 @@ export default function App() {
             </span>
             <button
               type="button"
-              className="btn btn-sm"
+              className="btn btn-sm shrink-0"
               data-testid="toggle-timer"
               onClick={togglePause}
               aria-label={paused ? "Resume timer" : "Pause timer"}
@@ -255,7 +265,7 @@ export default function App() {
             </button>
             <button
               type="button"
-              className="btn btn-sm"
+              className="btn btn-sm shrink-0"
               data-testid="settings"
               onClick={() => setSettingsOpen(true)}
               aria-label="Settings"
@@ -480,6 +490,42 @@ export default function App() {
           </>
         )}
       </main>
+
+      {homePromptOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setHomePromptOpen(false)}
+        >
+          <div className="card w-full max-w-sm p-5" onClick={(event) => event.stopPropagation()}>
+            <h2 className="title text-2xl">Leave the match?</h2>
+            <p className="mt-2 text-sm opacity-70">
+              The match ends here and the scores are lost. You can start a new one from the
+              home screen.
+            </p>
+            <div className="mt-5 grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                className="btn"
+                data-testid="home-cancel"
+                onClick={() => setHomePromptOpen(false)}
+              >
+                Keep playing
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                data-testid="home-confirm"
+                onClick={() => {
+                  setHomePromptOpen(false);
+                  dispatch({ type: "abort" });
+                }}
+              >
+                Leave match
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {settingsOpen && (
         <div

@@ -227,9 +227,77 @@ export default function SetupScreen({
                 </button>
               );
             })}
+            <button
+              type="button"
+              data-testid="deck-custom"
+              onClick={() => setUseCustom((value) => !value)}
+              className={`btn ${useCustom ? "btn-primary" : ""}`}
+            >
+              {useCustom ? "✓ " : ""}Custom spectra
+            </button>
           </div>
           {errors.decks && showErrors && (
             <p className="mt-1 text-xs font-bold text-danger">{errors.decks}</p>
+          )}
+
+          {useCustom && (
+            <div className="mt-3">
+              <p className="text-xs opacity-70">
+                One per line: <code className="mono-num">Total Cringe : Pure Masterpiece</code>
+                <br />
+                The left pole is always 0, the right pole always 100.
+              </p>
+              <textarea
+                value={customText}
+                data-testid="custom-spectra"
+                onChange={(event) => setCustomText(event.target.value)}
+                rows={4}
+                spellCheck={false}
+                className={`${inputClass} mono-num mt-2 resize-y`}
+                placeholder={"Total Cringe : Pure Masterpiece\nRainy Day : Beach Day"}
+              />
+              {custom.errors.length > 0 && (
+                <ul className="mt-2 flex flex-col gap-1 text-xs font-bold text-danger">
+                  {custom.errors.map((error) => (
+                    <li key={error.line}>
+                      Line {error.line}: {error.message}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {custom.items.length > 0 && (
+                <div className="mt-2 flex flex-col gap-1 text-xs">
+                  {custom.items.map((item, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <span className="mono-num shrink-0 rounded bg-surface-2 px-1.5 py-0.5">
+                        0 → 100
+                      </span>
+                      <span className="font-semibold">{item.left}</span>
+                      <span className="opacity-50">:</span>
+                      <span className="font-semibold">{item.right}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  data-testid="custom-first"
+                  onClick={() => setCustomFirst(true)}
+                  className={`btn ${customFirst ? "btn-primary" : ""}`}
+                >
+                  {customFirst ? "✓ " : ""}Play custom first
+                </button>
+                <button
+                  type="button"
+                  data-testid="custom-shuffle"
+                  onClick={() => setCustomFirst(false)}
+                  className={`btn ${!customFirst ? "btn-primary" : ""}`}
+                >
+                  {!customFirst ? "✓ " : ""}Shuffle into deck
+                </button>
+              </div>
+            </div>
           )}
         </div>
 
@@ -251,78 +319,6 @@ export default function SetupScreen({
             />
           </Field>
         </div>
-      </section>
-
-      <section className="card mb-4 p-4">
-        <h2 className="text-lg font-black uppercase tracking-wide">Custom spectra</h2>
-        <label className="mt-2 flex items-center gap-2 text-sm font-bold">
-          <input
-            type="checkbox"
-            data-testid="custom-toggle"
-            checked={useCustom}
-            onChange={(event) => setUseCustom(event.target.checked)}
-          />
-          Add my own spectra
-        </label>
-        {useCustom && (
-          <>
-            <p className="mt-2 text-xs opacity-70">
-              One per line: <code className="mono-num">Total Cringe : Pure Masterpiece</code>
-              <br />
-              The left pole is always 0, the right pole always 100.
-            </p>
-            <textarea
-              value={customText}
-              data-testid="custom-spectra"
-              onChange={(event) => setCustomText(event.target.value)}
-              rows={4}
-              spellCheck={false}
-              className={`${inputClass} mono-num mt-2 resize-y`}
-              placeholder={"Total Cringe : Pure Masterpiece\nRainy Day : Beach Day"}
-            />
-            {custom.errors.length > 0 && (
-              <ul className="mt-2 flex flex-col gap-1 text-xs font-bold text-danger">
-                {custom.errors.map((error) => (
-                  <li key={error.line}>
-                    Line {error.line}: {error.message}
-                  </li>
-                ))}
-              </ul>
-            )}
-            {custom.items.length > 0 && (
-              <div className="mt-2 flex flex-col gap-1 text-xs">
-                {custom.items.map((item, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <span className="mono-num shrink-0 rounded bg-surface-2 px-1.5 py-0.5">
-                      0 → 100
-                    </span>
-                    <span className="font-semibold">{item.left}</span>
-                    <span className="opacity-50">:</span>
-                    <span className="font-semibold">{item.right}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              <button
-                type="button"
-                data-testid="custom-first"
-                onClick={() => setCustomFirst(true)}
-                className={`btn ${customFirst ? "btn-primary" : ""}`}
-              >
-                {customFirst ? "✓ " : ""}Play custom first
-              </button>
-              <button
-                type="button"
-                data-testid="custom-shuffle"
-                onClick={() => setCustomFirst(false)}
-                className={`btn ${!customFirst ? "btn-primary" : ""}`}
-              >
-                {!customFirst ? "✓ " : ""}Shuffle into deck
-              </button>
-            </div>
-          </>
-        )}
       </section>
 
       {showErrors && errorList.length > 0 && (

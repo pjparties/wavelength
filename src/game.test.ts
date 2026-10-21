@@ -132,6 +132,11 @@ test("setup validation enforces the target points rule", () => {
   assert.ok(
     validateSetup({ ...base, decks: [] }).decks,
   );
+  assert.deepEqual(
+    validateSetup({ ...base, decks: [], custom: [{ left: "a", right: "b" }] }),
+    {},
+    "custom spectra alone are enough to start",
+  );
   assert.ok(
     validateSetup({
       ...base,

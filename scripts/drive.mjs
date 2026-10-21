@@ -33,7 +33,8 @@ try {
     `!document.querySelector('[data-testid="custom-spectra"]')`,
   );
   check("custom text box stays hidden until the option is checked", boxHidden === true);
-  await app.clickId("custom-toggle");
+  check("custom spectra are a deck option", (await app.text()).includes("custom spectra"));
+  await app.clickId("deck-custom");
   await app.setValueId("custom-spectra", "Total Cringe : Pure Masterpiece");
   await app.clickId("add-team");
   await app.setValueId("team-name-2", "Cringe Club");
@@ -190,6 +191,19 @@ try {
   // ---- desktop shot ------------------------------------------------
   await app.viewport(1280, 860, { mobile: false, deviceScaleFactor: 2 });
   await app.shot("12-setup-desktop");
+
+  // ---- home button: the logo asks before it leaves the match ----
+  await app.clickId("start-match");
+  await app.clickId("home");
+  const homePrompt = await app.text();
+  check("the logo opens a confirmation popup", homePrompt.includes("leave the match"), homePrompt.slice(0, 120));
+  await app.shot("13-home-confirm");
+  await app.clickId("home-cancel");
+  check("cancelling keeps the match", (await app.text()).includes("pass the device to"));
+  await app.clickId("home");
+  await app.clickId("home-confirm");
+  check("confirming leaves the match for the home screen", (await app.text()).includes("start match"));
+  await app.shot("14-back-home");
 
   console.log("\nconsole errors:", app.errors.length ? app.errors : "none");
   if (app.errors.length) process.exitCode = 1;
