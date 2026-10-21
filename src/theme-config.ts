@@ -30,46 +30,46 @@ export type ThemeConfig = {
   };
 };
 
-export const THEMES = {
-  diwali: {
-    id: "diwali",
-    colors: {
-      // warm cream paper, like diwali sweets-box card stock
-      paper: "#FBEFD9",
-      surface: "#FFF9EC",
-      surface2: "#F6E0B8",
-      // deep maroon-brown, like kajal / dark wood
-      ink: "#3A1620",
-      inkSoft: "#8A6258",
-      // antique gold borders
-      line: "#E0B96F",
-      // diya terracotta-vermilion
-      accent: "#D9531E",
-      accentInk: "#FFF9EC",
-      danger: "#A3182E",
-      // score zones: marigold gold (best) -> saffron -> rani pink -> faded cream
-      zone5: "#E8A317",
-      zone3: "#E26A2C",
-      zone1: "#C23B63",
-      zone0: "#E8D8BC",
-      shadow: "#8A4B2E",
-    },
-    backdrop: {
-      image: DIWALI_BACKGROUND,
-      opacity: 1,
-    },
-    button: {
-      radius: "12px",
-      shadow: "0 2px 8px rgba(138, 75, 46, 0.18)",
-      shadowHover: "0 4px 14px rgba(217, 83, 30, 0.28)",
-      shadowActive: "0 1px 3px rgba(138, 75, 46, 0.2)",
-    },
+/**
+ * The one look the app ships: warm diwali paper, marigold and terracotta zones.
+ * `theme.css` reads these through the custom properties `applyTheme` sets.
+ */
+export const THEME = {
+  id: "diwali",
+  colors: {
+    // warm cream paper, like diwali sweets-box card stock
+    paper: "#FBEFD9",
+    surface: "#FFF9EC",
+    surface2: "#F6E0B8",
+    // deep maroon-brown, like kajal / dark wood
+    ink: "#3A1620",
+    inkSoft: "#8A6258",
+    // antique gold borders
+    line: "#E0B96F",
+    // diya terracotta-vermilion
+    accent: "#D9531E",
+    accentInk: "#FFF9EC",
+    danger: "#A3182E",
+    // score zones: marigold gold (best) -> saffron -> rani pink -> faded cream
+    zone5: "#E8A317",
+    zone3: "#E26A2C",
+    zone1: "#C23B63",
+    zone0: "#E8D8BC",
+    shadow: "#8A4B2E",
   },
-} satisfies Record<string, ThemeConfig>;
+  backdrop: {
+    image: DIWALI_BACKGROUND,
+    opacity: 1,
+  },
+  button: {
+    radius: "12px",
+    shadow: "0 2px 8px rgba(138, 75, 46, 0.18)",
+    shadowHover: "0 4px 14px rgba(217, 83, 30, 0.28)",
+    shadowActive: "0 1px 3px rgba(138, 75, 46, 0.2)",
+  },
+} satisfies ThemeConfig;
 
-export const ACTIVE_THEME = THEMES.diwali;
-
-export function applyTheme(theme: ThemeConfig = ACTIVE_THEME): void {
+export function applyTheme(theme: ThemeConfig = THEME): void {
   const root = document.documentElement;
   root.dataset.theme = theme.id;
   root.style.setProperty("--paper", theme.colors.paper);

@@ -19,9 +19,20 @@ const api = spawn(process.execPath, ["scripts/mock-api.mjs"], {
   stdio: "ignore",
 });
 
-const app = await launch({ url: APP_URL, width: 430, height: 932, port: PORT });
+let app = null;
 
 try {
+  // The mock API must be listening before the page asks for the catalogue.
+  for (let i = 0; i < 40; i++) {
+    try {
+      if ((await fetch(`${API_URL}/decks`)).ok) break;
+    } catch {
+      // not up yet
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  app = await launch({ url: APP_URL, width: 430, height: 932, port: PORT });
+
   // The catalogue of a backend arrives over the network, so wait for it.
   await app.waitFor(`!!document.querySelector('[data-testid="deck-community"]')`);
   const setup = await app.text();
@@ -49,7 +60,9 @@ try {
   check("the match records which deck source it used", JSON.stringify(deckIds) === '["community"]', JSON.stringify(deckIds));
 
   // a backend that is down must not break the app
-  await app.evaluate("localStorage.removeItem('wavelength.match.v1')");
+  // (leave the match through the UI: the app saves an open match when it unloads)
+  await app.clickId("settings");
+  await app.clickId("abort");
   await app.navigate(APP_URL.replace(/api=[^&]*/, "api=http://localhost:4999"));
   await app.waitFor(`!!document.querySelector('[data-testid="deck-community"]')`);
   await app.clickId("deck-clean");
@@ -64,6 +77,6 @@ try {
   console.error("REMOTE AUDIT FAILED:", error);
   process.exitCode = 1;
 } finally {
-  app.close();
+  app?.close();
   api.kill();
 }

@@ -25,6 +25,28 @@ export const ZONE_CORE = 5;
 export const ZONE_INNER = 13.5;
 export const ZONE_OUTER = 22.5;
 
+export type ZoneBand = { from: number; to: number; points: number };
+
+/**
+ * The painted zones around a target, clipped to the dial. At an end of the scale
+ * the banded spectrum is only half there.
+ */
+export function zoneBands(target: number): ZoneBand[] {
+  return [
+    { from: target - ZONE_OUTER, to: target - ZONE_INNER, points: 1 },
+    { from: target - ZONE_INNER, to: target - ZONE_CORE, points: 3 },
+    { from: target - ZONE_CORE, to: target + ZONE_CORE, points: 5 },
+    { from: target + ZONE_CORE, to: target + ZONE_INNER, points: 3 },
+    { from: target + ZONE_INNER, to: target + ZONE_OUTER, points: 1 },
+  ]
+    .map((band) => ({
+      ...band,
+      from: Math.max(TARGET_MIN, band.from),
+      to: Math.min(TARGET_MAX, band.to),
+    }))
+    .filter((band) => band.to > band.from);
+}
+
 export const TEAM_PALETTE = [
   "#2F5DA8",
   "#C8553D",
@@ -142,6 +164,7 @@ export function buildMatch(config: SetupConfig, spectra: Spectrum[]): Match {
     winner: null,
     maxSkipsPerTeam: config.maxSkipsPerTeam,
     skipsUsed: config.teams.map(() => 0),
+    remainingMs: config.psychicSeconds * 1000,
   };
 }
 

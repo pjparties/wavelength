@@ -11,7 +11,7 @@
     "test": "node --test src/*.test.ts",
     "check": "tsc -b && oxlint",
     "mock-api": "node scripts/mock-api.mjs",
-    "verify": "npm run build && node scripts/drive.mjs ./shots && node scripts/visual.mjs ./shots && node scripts/logic.mjs && node scripts/scoring.mjs",
+    "verify": "npm run build && node scripts/verify-all.mjs",
     "verify:remote": "node scripts/remote.mjs",
     "ci": "npm run check && npm test && npm run verify && npm run verify:remote"
   },

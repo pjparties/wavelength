@@ -139,6 +139,21 @@
       inset 0 0 0 1px rgba(232, 163, 23, 0.22);
   }
 
+  /* A modal: the browser puts it in the top layer, so focus cannot leave it. */
+  .sheet {
+    width: min(100% - 2rem, 28rem);
+    max-height: 90dvh;
+    margin: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    overflow: visible;
+  }
+
+  .sheet::backdrop {
+    background: rgba(0, 0, 0, 0.5);
+  }
+
   /* grain sits in a pseudo layer so text inside is never dimmed */
   .paper-texture {
     position: relative;

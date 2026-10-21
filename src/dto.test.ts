@@ -35,3 +35,19 @@ test("a deck without an id is dropped", () => {
 test("a domain spectrum can be written back to the wire", () => {
   assert.deepEqual(toSpectrumDTO({ left: "A", right: "B" }), { left: "A", right: "B" });
 });
+
+test("a row that is not two strings is skipped", () => {
+  assert.equal(parseSpectrum({ left: { text: "Cold" }, right: "Hot" }), null);
+  assert.equal(parseSpectrum({ left: 5, right: "Hot" }), null);
+  assert.equal(parseSpectrum({ left: "x".repeat(500), right: "Hot" }), null);
+});
+
+test("duplicate deck ids keep the first deck only", () => {
+  assert.deepEqual(
+    parseDeckList([
+      { id: "community", label: "Community" },
+      { id: "community", label: "Community again" },
+    ]),
+    [{ id: "community", label: "Community" }],
+  );
+});

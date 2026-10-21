@@ -123,7 +123,3 @@ export function setSoundEnabled(on: boolean): void {
     // ignore
   }
 }
-
-export function isSoundEnabled(): boolean {
-  return enabled
-}

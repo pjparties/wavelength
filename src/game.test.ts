@@ -15,7 +15,27 @@ import {
   scoreFor,
   shuffle,
   validateSetup,
+  zoneBands,
 } from "./game.ts";
+import type { SetupConfig } from "./game.ts";
+
+function setupConfig(patch: Partial<SetupConfig> = {}): SetupConfig {
+  return {
+    teams: [
+      { name: "A", color: "#000" },
+      { name: "B", color: "#111" },
+    ],
+    rounds: 1,
+    psychicSeconds: 60,
+    guessSeconds: 45,
+    decks: ["clean"],
+    custom: [],
+    customFirst: true,
+    targetScore: null,
+    maxSkipsPerTeam: 2,
+    ...patch,
+  };
+}
 
 test("score zones: 5 / 3 / 1 / 0", () => {
   assert.equal(scoreFor(90, 90), 5);
@@ -239,4 +259,80 @@ test("skips are off when the limit is zero", () => {
   const skipped = reducer(psychic, { type: "skip" })!;
   assert.equal(skipped.turnIndex, 0);
   assert.equal(skipped.cardIndex, 0);
+});
+
+test("a reveal scores the team on turn, next rotates, and the last turn ends the match", () => {
+  const match = buildMatch(setupConfig(), [
+    { left: "a", right: "b" },
+    { left: "c", right: "d" },
+  ]);
+  const revealed = reducer(
+    reducer(reducer(match, { type: "pass" }), { type: "guess" }),
+    { type: "reveal", points: 3 },
+  )!;
+  assert.deepEqual(revealed.teams.map((team) => team.score), [3, 0]);
+  assert.equal(revealed.phase, "reveal");
+  assert.equal(revealed.lastPoints, 3);
+
+  const next = reducer(revealed, { type: "next" })!;
+  assert.equal(next.turnIndex, 1, "the turn moves to the second team");
+  assert.equal(next.phase, "psychic_pass");
+  assert.equal(next.needleAngle, 90, "the needle goes back to the middle");
+  assert.equal(next.lastPoints, null);
+
+  const end = reducer(
+    reducer(
+      reducer(reducer(next, { type: "pass" }), { type: "guess" }),
+      { type: "reveal", points: 5 },
+    ),
+    { type: "next" },
+  )!;
+  assert.deepEqual(end.teams.map((team) => team.score), [3, 5]);
+  assert.equal(end.phase, "gameover", "two teams, one round each: that is the match");
+});
+
+test("reaching the target score names the winner and ends the match", () => {
+  const match = buildMatch(setupConfig({ targetScore: 5, rounds: 3 }), [
+    { left: "a", right: "b" },
+    { left: "c", right: "d" },
+  ]);
+  const won = reducer(
+    reducer(reducer(match, { type: "pass" }), { type: "guess" }),
+    { type: "reveal", points: 5 },
+  )!;
+  assert.equal(won.winner, "A");
+  assert.equal(reducer(won, { type: "next" })!.phase, "gameover");
+});
+
+test("the needle only moves while guessing", () => {
+  const match = buildMatch(setupConfig(), [{ left: "a", right: "b" }]);
+  assert.equal(reducer(match, { type: "needle", angle: 12 })!.needleAngle, 90);
+  const guessing = reducer(reducer(match, { type: "pass" }), { type: "guess" })!;
+  assert.equal(reducer(guessing, { type: "needle", angle: 12 })!.needleAngle, 12);
+});
+
+test("a saved match remembers the time left on the clock", () => {
+  const match = buildMatch(setupConfig({ psychicSeconds: 20 }), [{ left: "a", right: "b" }]);
+  assert.equal(match.remainingMs, 20_000);
+});
+
+test("the target zones are clipped to the scale, so an end shows half", () => {
+  const spans = (target: number) => zoneBands(target).map((band) => [band.from, band.to]);
+
+  assert.deepEqual(spans(0), [
+    [0, 5],
+    [5, 13.5],
+    [13.5, 22.5],
+  ]);
+  assert.deepEqual(spans(180), [
+    [157.5, 166.5],
+    [166.5, 175],
+    [175, 180],
+  ]);
+  assert.equal(zoneBands(90).length, 5, "away from the ends all five bands show");
+  assert.deepEqual(
+    zoneBands(0).map((band) => band.points),
+    [5, 3, 1],
+    "the edge cuts the bullseye in half and keeps it",
+  );
 });

@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
-import { clamp, NEEDLE_MAX, NEEDLE_MIN, ZONE_CORE, ZONE_INNER, ZONE_OUTER } from "./game.ts";
+import { clamp, NEEDLE_MAX, NEEDLE_MIN, zoneBands } from "./game.ts";
 
 const VB_W = 400;
 const VB_H = 234;
@@ -21,6 +21,12 @@ function wedgePath(from: number, to: number): string {
 }
 
 const HALF_CIRCLE = `M ${CX - R} ${CY} A ${R} ${R} 0 0 1 ${CX + R} ${CY} Z`;
+
+const BAND_FILL: Record<number, string> = {
+  1: "var(--zone-1)",
+  3: "var(--zone-3)",
+  5: "var(--zone-5)",
+};
 
 export type DialProps = {
   /** Needle position in arc degrees. null renders no needle at all. */
@@ -47,18 +53,22 @@ export default function Dial({
   const dragging = useRef(false);
   const [held, setHeld] = useState(false);
 
-  const angleAt = (clientX: number, clientY: number) => {
+  /** null when the pointer is below the arc's base: there is no angle out there. */
+  const angleAt = (clientX: number, clientY: number): number | null => {
     const rect = svgRef.current?.getBoundingClientRect();
-    if (!rect) return 90;
+    if (!rect) return null;
     const x = ((clientX - rect.left) * VB_W) / rect.width;
     const y = ((clientY - rect.top) * VB_H) / rect.height;
-    const dx = x - CX;
     const dyUp = CY - y;
-    return clamp((Math.atan2(dx, dyUp) * 180) / Math.PI + 90, NEEDLE_MIN, NEEDLE_MAX);
+    if (dyUp <= 0) return null;
+    return clamp((Math.atan2(x - CX, dyUp) * 180) / Math.PI + 90, NEEDLE_MIN, NEEDLE_MAX);
   };
 
   const handlePointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
     if (!interactive || !onChange) return;
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    const angle = angleAt(event.clientX, event.clientY);
+    if (angle === null) return;
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
     } catch {
@@ -66,12 +76,13 @@ export default function Dial({
     }
     dragging.current = true;
     setHeld(true);
-    onChange(angleAt(event.clientX, event.clientY));
+    onChange(angle);
   };
 
   const handlePointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
     if (!interactive || !dragging.current || !onChange) return;
-    onChange(angleAt(event.clientX, event.clientY));
+    const angle = angleAt(event.clientX, event.clientY);
+    if (angle !== null) onChange(angle);
   };
 
   const handlePointerUp = (event: ReactPointerEvent<SVGSVGElement>) => {
@@ -97,16 +108,6 @@ export default function Dial({
       onChange(clamp(needle + step, NEEDLE_MIN, NEEDLE_MAX));
     }
   };
-
-  const bands = target === null
-    ? []
-    : ([
-        [target - ZONE_OUTER, target - ZONE_INNER, "var(--zone-1)"],
-        [target - ZONE_INNER, target - ZONE_CORE, "var(--zone-3)"],
-        [target - ZONE_CORE, target + ZONE_CORE, "var(--zone-5)"],
-        [target + ZONE_CORE, target + ZONE_INNER, "var(--zone-3)"],
-        [target + ZONE_INNER, target + ZONE_OUTER, "var(--zone-1)"],
-      ] as [number, number, string][]);
 
   const missFace = target !== null && !plainFace;
 
@@ -139,12 +140,13 @@ export default function Dial({
 
       {target !== null && (
         <g data-target="true">
-          {bands.map(([from, to, fill]) => {
-            const lo = Math.max(0, from);
-            const hi = Math.min(180, to);
-            if (hi <= lo) return null;
-            return <path key={`${from}-${to}`} d={wedgePath(lo, hi)} fill={fill} />;
-          })}
+          {zoneBands(target).map((band) => (
+            <path
+              key={`${band.from}-${band.to}`}
+              d={wedgePath(band.from, band.to)}
+              fill={BAND_FILL[band.points]}
+            />
+          ))}
         </g>
       )}
 

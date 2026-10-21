@@ -50,7 +50,8 @@ export function remoteDeckSources(baseUrl: string, decks: DeckDTO[]): DeckSource
     id: deck.id,
     label: deck.label,
     size: deck.size,
-    load: async () => parseSpectrumList(await fetchJson(`${base}/decks/${deck.id}/spectra`)),
+    load: async () =>
+      parseSpectrumList(await fetchJson(`${base}/decks/${encodeURIComponent(deck.id)}/spectra`)),
   }));
 }
 
@@ -100,9 +101,24 @@ export function defaultDeckSources(): DeckSource[] {
   ];
 }
 
-/** Load the questions of the selected sources. A failing source fails the load. */
+/**
+ * Load the questions of the selected sources. A failing source fails the load,
+ * naming itself so the player knows which deck is down.
+ */
 export async function loadDeck(sources: DeckSource[], ids: string[]): Promise<Spectrum[]> {
-  const chosen = sources.filter((source) => ids.includes(source.id));
-  const loaded = await Promise.all(chosen.map((source) => source.load()));
+  const chosen: DeckSource[] = [];
+  for (const source of sources) {
+    // One source per id: the built-in deck wins over a remote deck that reuses its id.
+    if (!ids.includes(source.id) || chosen.some((s) => s.id === source.id)) continue;
+    chosen.push(source);
+  }
+  const loaded = await Promise.all(
+    chosen.map((source) =>
+      source.load().catch((error: unknown) => {
+        const reason = error instanceof Error ? error.message : "could not load";
+        throw new Error(`${source.label} deck: ${reason}`);
+      }),
+    ),
+  );
   return loaded.flat();
 }

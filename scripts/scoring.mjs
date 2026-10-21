@@ -35,9 +35,11 @@ try {
       svg.dispatchEvent(new PointerEvent('pointerup', opts));
       return true;
     })()`);
-    const needleAngle = await app.evaluate(
-      "JSON.parse(localStorage.getItem('wavelength.match.v1')).needleAngle",
-    );
+    // Read the needle from the dial: a move is saved shortly after, not at once.
+    const needleAngle = await app.evaluate(`(() => {
+      const t = document.querySelector('[data-needle]').getAttribute('transform');
+      return Number(t.match(/-?[0-9.]+/)[0]) + 90;
+    })()`);
     const diff = Math.abs(needleAngle - target);
 
     const beforeScores = await app.evaluate(
@@ -79,9 +81,10 @@ try {
     svg.dispatchEvent(new PointerEvent('pointerup', opts));
     return true;
   })()`);
-  const missAngle = await app.evaluate(
-    "JSON.parse(localStorage.getItem('wavelength.match.v1')).needleAngle",
-  );
+  const missAngle = await app.evaluate(`(() => {
+    const t = document.querySelector('[data-needle]').getAttribute('transform');
+    return Number(t.match(/-?[0-9.]+/)[0]) + 90;
+  })()`);
   const missDiff = Math.abs(missAngle - target2);
   await app.clickId("reveal");
   const missResult = await app.evaluate(`(() => {

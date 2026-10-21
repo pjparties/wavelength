@@ -230,12 +230,17 @@ export async function launch({
 
   // Click by data-testid: stable across copy and design changes.
   const clickId = async (testid, { settle = 250 } = {}) => {
-    const ok = await evaluate(`(() => {
+    // React may not have committed the last action yet; wait for the element
+    // instead of failing on the first look.
+    const found = await waitFor(
+      `!!document.querySelector('[data-testid=${JSON.stringify(testid)}]')`,
+    );
+    const ok = found && (await evaluate(`(() => {
       const el = document.querySelector('[data-testid=${JSON.stringify(testid)}]');
       if (!el) return false;
       el.click();
       return true;
-    })()`);
+    })()`));
     if (!ok) throw new Error(`no element with data-testid="${testid}"`);
     await sleep(settle);
     return true;

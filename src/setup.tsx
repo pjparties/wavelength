@@ -9,6 +9,7 @@ import {
 } from "./game.ts";
 import type { SetupConfig, SetupErrors } from "./types.ts";
 import type { DeckSource } from "./types.ts";
+import Sheet from "./sheet.tsx";
 import { BUTTON_ARIA, BUTTON_TEXT } from "./ui-copy.ts";
 
 export type SetupScreenProps = {
@@ -290,14 +291,8 @@ export default function SetupScreen({
       </section>
 
       {settingsOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setSettingsOpen(false)}
-        >
-          <div
-            className="card max-h-[90dvh] w-full max-w-md overflow-y-auto p-5"
-            onClick={(event) => event.stopPropagation()}
-          >
+        <Sheet onClose={() => setSettingsOpen(false)}>
+          <div className="card max-h-[90dvh] w-full overflow-y-auto p-5">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-black uppercase tracking-wide">Settings</h2>
               <button
@@ -410,7 +405,7 @@ export default function SetupScreen({
               </p>
             </section>
           </div>
-        </div>
+        </Sheet>
       )}
 
       {showErrors && errorList.length > 0 && (

@@ -64,6 +64,8 @@ export type Match = {
   maxSkipsPerTeam: number;
   /** Skips spent, indexed by team. */
   skipsUsed: number[];
+  /** Time left on the clock when the match was saved. Not game state. */
+  remainingMs: number;
 };
 
 export type Action =

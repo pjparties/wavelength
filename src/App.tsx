@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import Dial from "./dial.tsx";
 import SetupScreen from "./setup.tsx";
+import Sheet from "./sheet.tsx";
 import { apiBaseUrl, defaultDeckSources, loadDeck, loadRemoteDeckSources } from "./deck-source.ts";
 import { playSfx, setSoundEnabled } from "./audio.ts";
 import { BUTTON_ARIA, BUTTON_TEXT } from "./ui-copy.ts";
@@ -17,6 +18,7 @@ import {
 import type { DeckSource, Match, SetupConfig } from "./types.ts";
 
 const MATCH_KEY = "wavelength.match.v1";
+const CONFIG_KEY = "wavelength.config.v1";
 const SOUND_KEY = "wavelength.sound.v1";
 const EASY_KEY = "wavelength.easy.v1";
 
@@ -42,14 +44,17 @@ function loadMatch(): Match | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Match & { turnSeconds?: number };
     if (!parsed?.teams?.length || !parsed.deck?.length) return null;
+    // matches saved before the two timers existed
+    const psychicSeconds = parsed.psychicSeconds ?? parsed.turnSeconds ?? 60;
     return {
       ...parsed,
-      // matches saved before the two timers existed
-      psychicSeconds: parsed.psychicSeconds ?? parsed.turnSeconds ?? 60,
+      psychicSeconds,
       guessSeconds: parsed.guessSeconds ?? parsed.turnSeconds ?? 45,
       maxSkipsPerTeam: parsed.maxSkipsPerTeam ?? DEFAULT_MAX_SKIPS,
       skipsUsed: parsed.skipsUsed ?? parsed.teams.map(() => 0),
       cardIndex: parsed.cardIndex ?? parsed.turnIndex,
+      remainingMs:
+        typeof parsed.remainingMs === "number" ? Math.max(0, parsed.remainingMs) : psychicSeconds * 1000,
     };
   } catch {
     return null;
@@ -77,10 +82,17 @@ export default function App() {
   const [easyMode, setEasyMode] = useState(() => safeGet(EASY_KEY) === "on");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [homePromptOpen, setHomePromptOpen] = useState(false);
-  const [remaining, setRemaining] = useState(60_000);
+  const [remaining, setRemaining] = useState(() => match?.remainingMs ?? 60_000);
   const [paused, setPaused] = useState(false);
   const deadlineRef = useRef(0);
-  const [lastConfig, setLastConfig] = useState<SetupConfig | null>(null);
+  const leftRef = useRef(remaining);
+  const [lastConfig, setLastConfig] = useState<SetupConfig | null>(() => {
+    try {
+      return JSON.parse(safeGet(CONFIG_KEY) ?? "null") as SetupConfig | null;
+    } catch {
+      return null;
+    }
+  });
   const lastTick = useRef<number | null>(null);
   const lastTickSecond = useRef<number | null>(null);
   const [starting, setStarting] = useState(false);
@@ -117,6 +129,15 @@ export default function App() {
     safeSet(EASY_KEY, easyMode ? "on" : "off");
   }, [easyMode]);
 
+  // Restore the clock where the last save left it, instead of restarting at zero.
+  useEffect(() => {
+    deadlineRef.current = Date.now() + leftRef.current;
+  }, []);
+
+  // A needle drag commits many times a second, so a move that changes nothing
+  // but the needle is written after a short pause. Everything else is written at
+  // once. The clock saves its own time left, and a hidden tab flushes it.
+  const lastSaved = useRef<string | null>(null);
   useEffect(() => {
     if (!match) {
       try {
@@ -124,16 +145,42 @@ export default function App() {
       } catch {
         // storage disabled
       }
+      lastSaved.current = null;
       return;
     }
-    safeSet(MATCH_KEY, JSON.stringify(match));
+    // The clock and the needle are left out of the comparison: a drag and every
+    // tick would otherwise look like a real change.
+    const snapshot = JSON.stringify({ ...match, needleAngle: 0, remainingMs: 0 });
+    const write = () => {
+      safeSet(MATCH_KEY, JSON.stringify({ ...match, remainingMs: leftRef.current }));
+      lastSaved.current = snapshot;
+    };
+    const id = snapshot === lastSaved.current ? setTimeout(write, 250) : (write(), undefined);
+    const flush = () => {
+      if (document.visibilityState === "hidden") write();
+    };
+    addEventListener("pagehide", write);
+    document.addEventListener("visibilitychange", flush);
+    return () => {
+      if (id !== undefined) clearTimeout(id);
+      removeEventListener("pagehide", write);
+      document.removeEventListener("visibilitychange", flush);
+    };
   }, [match]);
 
-  const inMatch = match !== null;
   useEffect(() => {
-    if (!inMatch || paused) return;
+    if (lastConfig) safeSet(CONFIG_KEY, JSON.stringify(lastConfig));
+  }, [lastConfig]);
+
+  const inMatch = match !== null;
+  // Only the psychic and the guessers are timed; the reveal and the game over
+  // screen leave the clock where it stopped.
+  const timed = match?.phase === "psychic" || match?.phase === "guess";
+  useEffect(() => {
+    if (!inMatch || paused || !timed) return;
     const id = setInterval(() => {
       const left = Math.max(0, deadlineRef.current - Date.now());
+      leftRef.current = left;
       setRemaining(left);
       // tick once per second in the last ten seconds
       const seconds = Math.ceil(left / 1000);
@@ -141,13 +188,14 @@ export default function App() {
         lastTickSecond.current = seconds;
         playSfx("tick");
       }
-    }, 200);
+    }, 1000);
     return () => clearInterval(id);
-  }, [inMatch, paused]);
+  }, [inMatch, paused, timed]);
 
   const resetTimer = (seconds: number) => {
     const ms = seconds * 1000;
     deadlineRef.current = Date.now() + ms;
+    leftRef.current = ms;
     setRemaining(ms);
     setPaused(false);
     lastTick.current = null;
@@ -159,7 +207,9 @@ export default function App() {
       deadlineRef.current = Date.now() + remaining;
       setPaused(false);
     } else {
-      setRemaining(Math.max(0, deadlineRef.current - Date.now()));
+      const left = Math.max(0, deadlineRef.current - Date.now());
+      leftRef.current = left;
+      setRemaining(left);
       setPaused(true);
     }
   };
@@ -195,23 +245,13 @@ export default function App() {
     const points = scoreFor(match.needleAngle, match.targetAngle);
     dispatch({ type: "reveal", points });
     playSfx(points === 0 ? "miss" : "reveal");
-    resetTimer(match.psychicSeconds);
   };
 
-  const handleNext = () => {
+  const deal = (type: "next" | "skip") => {
     if (!match) return;
-    const nextCard = match.cardIndex + 1;
-    const reshuffle = match.deck.length > 0 && nextCard % match.deck.length === 0;
-    dispatch({ type: "next", deck: reshuffle ? shuffle(match.deck) : undefined });
-    playSfx("click");
-    resetTimer(match.psychicSeconds);
-  };
-
-  const handleSkip = () => {
-    if (!match) return;
-    const nextCard = match.cardIndex + 1;
-    const reshuffle = match.deck.length > 0 && nextCard % match.deck.length === 0;
-    dispatch({ type: "skip", deck: reshuffle ? shuffle(match.deck) : undefined });
+    const reshuffle = match.deck.length > 0 && (match.cardIndex + 1) % match.deck.length === 0;
+    const deck = reshuffle ? shuffle(match.deck) : undefined;
+    dispatch(type === "next" ? { type: "next", deck } : { type: "skip", deck });
     playSfx("click");
     resetTimer(match.psychicSeconds);
   };
@@ -253,7 +293,8 @@ export default function App() {
 
   const teamIndex = turnIndex % match.teams.length;
   const team = match.teams[teamIndex];
-  const card = match.deck[match.cardIndex % match.deck.length] ?? { left: "—", right: "—" };
+  const cardNo = (match.cardIndex % match.deck.length) + 1;
+  const card = match.deck[cardNo - 1] ?? { left: "—", right: "—" };
   const turns = totalTurns(match.teams.length, match.rounds);
   const timedOut = remaining <= 0 && !paused;
   const needleVisible = match.phase === "guess" || match.phase === "reveal";
@@ -420,7 +461,7 @@ export default function App() {
                         className="btn btn-lg shrink-0"
                         data-testid="skip"
                         disabled={skipsLeft <= 0}
-                        onClick={handleSkip}
+                        onClick={() => deal("skip")}
                         aria-label={`Skip this card, ${skipsLeft} left for ${team.name}`}
                       >
                         {BUTTON_TEXT.skip} ({skipsLeft})
@@ -462,7 +503,7 @@ export default function App() {
                     type="button"
                     className="btn btn-primary btn-lg mt-3 w-full"
                     data-testid="next"
-                    onClick={handleNext}
+                    onClick={() => deal("next")}
                   >
                     {match.winner || turnIndex + 1 >= turns
                       ? BUTTON_TEXT.seeResults
@@ -554,11 +595,8 @@ export default function App() {
       </main>
 
       {homePromptOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setHomePromptOpen(false)}
-        >
-          <div className="card w-full max-w-sm p-5" onClick={(event) => event.stopPropagation()}>
+        <Sheet onClose={() => setHomePromptOpen(false)}>
+          <div className="card w-full p-5">
             <h2 className="title text-2xl">Leave the match?</h2>
             <p className="mt-2 text-sm opacity-70">
               The match ends here and the scores are lost. You can start a new one from the
@@ -586,15 +624,12 @@ export default function App() {
               </button>
             </div>
           </div>
-        </div>
+        </Sheet>
       )}
 
       {settingsOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setSettingsOpen(false)}
-        >
-          <div className="card w-full max-w-md p-5" onClick={(event) => event.stopPropagation()}>
+        <Sheet onClose={() => setSettingsOpen(false)}>
+          <div className="card w-full p-5">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-xl font-black uppercase tracking-wide">Settings</h2>
               <button
@@ -645,6 +680,14 @@ export default function App() {
                 </div>
               ))}
               <div className="flex justify-between">
+                <dt className="opacity-70">Decks in this match</dt>
+                <dd>
+                  {match.deckIds
+                    .map((id) => allSources.find((source) => source.id === id)?.label ?? id)
+                    .join(" + ") || "none"}
+                </dd>
+              </div>
+              <div className="flex justify-between">
                 <dt className="opacity-70">Custom spectra</dt>
                 <dd>{match.customCount}</dd>
               </div>
@@ -653,10 +696,9 @@ export default function App() {
                 <dd>{match.deck.length}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="opacity-70">Played / left</dt>
+                <dt className="opacity-70">Card</dt>
                 <dd>
-                  {Math.min(match.cardIndex + 1, match.deck.length)} /{" "}
-                  {Math.max(0, match.deck.length - match.cardIndex - 1)}
+                  {cardNo} / {match.deck.length}
                 </dd>
               </div>
             </dl>
@@ -673,7 +715,7 @@ export default function App() {
               {BUTTON_TEXT.abortMatch}
             </button>
           </div>
-        </div>
+        </Sheet>
       )}
     </div>
   );

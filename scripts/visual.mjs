@@ -12,6 +12,11 @@ const PORT = process.env.WL_PORT ?? 9334;
 
 const app = await launch({ url: URL, width: 430, height: 932, port: PORT, out: OUT });
 
+// The checks read the palette from the theme itself, so a colour change cannot
+// leave a stale expectation behind.
+const rgbOf = (hex) =>
+  `rgb(${[1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(", ")})`;
+
 try {
   // ---------- computed style audit ----------
   const styles = await app.evaluate(`(() => {
@@ -32,6 +37,11 @@ try {
       titleFont: cs(title).fontFamily,
       titleWeight: cs(title).fontWeight,
       grain: getComputedStyle(document.querySelector('.paper-texture'), '::after').backgroundImage.slice(0, 40),
+      vars: (() => {
+        const cs = getComputedStyle(document.documentElement);
+        const v = (name) => cs.getPropertyValue(name).trim();
+        return { paper: v('--paper'), surface: v('--surface'), ink: v('--ink'), accent: v('--accent'), zone5: v('--zone-5'), zone3: v('--zone-3'), zone1: v('--zone-1'), zone0: v('--zone-0'), danger: v('--danger') };
+      })(),
       diwali: (() => {
         const el = document.querySelector('[data-testid="diwali-bg"]');
         if (!el) return null;
@@ -42,7 +52,7 @@ try {
     };
   })()`);
   console.log("styles:", JSON.stringify(styles, null, 1));
-  check("page uses the diwali cream background", styles.bodyBg === "rgb(251, 239, 217)", styles.bodyBg);
+  check("page uses the theme paper colour", styles.bodyBg === rgbOf(styles.vars.paper), styles.bodyBg);
   check("buttons have a soft shadow", styles.btnShadow.includes("0.1") && styles.btnShadow.includes("2px 8px"), styles.btnShadow);
   check("buttons have a thin border", styles.btnBorder.includes("1px"), styles.btnBorder);
   check("cards have a thin border and soft shadow", styles.cardBorder.includes("1px") && styles.cardShadow.includes("5px 18px"), styles.cardShadow);
@@ -53,19 +63,20 @@ try {
 
   // ---------- pixel audit of the setup screen ----------
   const setupShot = await app.shot("v1-setup");
-  const setupPixels = await app.pixels(setupShot, {
-    targets: ["#fbefd9", "#fff9ec", "#3a1620", "#d9531e"],
-  });
+  const { paper, surface, ink, accent } = styles.vars;
+  const setupPixels = await app.pixels(setupShot, { targets: [paper, surface, ink, accent] });
   console.log("setup screen dominant colors:", JSON.stringify(setupPixels.top));
-  const paperPx = setupPixels.near["#fbefd9"] + setupPixels.near["#fff9ec"];
-  const inkPx = setupPixels.near["#3a1620"];
-  const accentPx = setupPixels.near["#d9531e"];
+  const paperPx = setupPixels.near[paper] + setupPixels.near[surface];
+  const inkPx = setupPixels.near[ink];
+  const accentPx = setupPixels.near[accent];
   check("cream paper fills the page", paperPx > setupPixels.total * 0.4, paperPx + "/" + setupPixels.total);
   check("ink text is rendered", inkPx > 2000, String(inkPx));
   check("accent colour (burnt orange) is rendered", accentPx > 500, String(accentPx));
 
-  const btnPixels = await app.pixels(setupShot, { selector: ".btn-primary", targets: ["#d9531e"] });
-  check("primary button face is the accent colour", btnPixels.near["#d9531e"] > btnPixels.total * 0.6, JSON.stringify(btnPixels.top.slice(0, 3)));
+  const btnPixels = await app.pixels(setupShot, { selector: ".btn-primary", targets: [accent, styles.vars.zone3] });
+  check("primary button face is the accent gradient",
+    btnPixels.near[accent] > btnPixels.total * 0.15 && btnPixels.near[styles.vars.zone3] > btnPixels.total * 0.15,
+    JSON.stringify(btnPixels.top.slice(0, 3)));
 
   // ---------- geometry audit of the dial ----------
   await app.clickId("start-match");
@@ -97,7 +108,7 @@ try {
   check("hard mode has no scale labels or ticks", dial.texts.length === 0 && dial.ticks === 0, JSON.stringify(dial.texts));
   check("needle is absent in the psychic phase", dial.hasNeedle === false);
   check("the psychic meter face is plain, not grey",
-    dial.face === "plain" && dial.faceFill === "rgb(255, 249, 236)", JSON.stringify([dial.face, dial.faceFill]));
+    dial.face === "plain" && dial.faceFill === rgbOf(styles.vars.surface), JSON.stringify([dial.face, dial.faceFill]));
   check("target renders the three scoring bands",
     new Set(dial.zoneFills.map((f) => f)).size >= 3, JSON.stringify(dial.zoneFills));
   check("dial fits the phone width", dial.box.w <= 430 && dial.box.w > 300, JSON.stringify(dial.box));
@@ -130,16 +141,17 @@ try {
 
   await app.clickId("reveal");
   const revealShot = await app.shot("v2-reveal");
+  const zones = [styles.vars.zone5, styles.vars.zone3, styles.vars.zone1, styles.vars.zone0];
   const dialPixels = await app.pixels(revealShot, {
     selector: "svg[aria-label='Spectrum dial']",
-    targets: ["#e8a317", "#e26a2c", "#c23b63", "#e8d8bc"],
+    targets: zones,
   });
   console.log("reveal dial colours:", JSON.stringify(dialPixels.top));
   const zoneShare = (hex) => dialPixels.near[hex] / dialPixels.total;
-  check("marigold bullseye is painted on the dial", zoneShare("#e8a317") > 0.01, zoneShare("#e8a317").toFixed(3));
-  check("saffron inner zone is painted on the dial", zoneShare("#e26a2c") > 0.01, zoneShare("#e26a2c").toFixed(3));
-  check("rani pink outer band is painted on the dial", zoneShare("#c23b63") > 0.01, zoneShare("#c23b63").toFixed(3));
-  check("warm cream miss is painted on the dial", zoneShare("#e8d8bc") > 0.05, zoneShare("#e8d8bc").toFixed(3));
+  check("bullseye zone is painted on the dial", zoneShare(zones[0]) > 0.01, zoneShare(zones[0]).toFixed(3));
+  check("inner zone is painted on the dial", zoneShare(zones[1]) > 0.01, zoneShare(zones[1]).toFixed(3));
+  check("outer band is painted on the dial", zoneShare(zones[2]) > 0.01, zoneShare(zones[2]).toFixed(3));
+  check("miss zone is painted on the dial", zoneShare(zones[3]) > 0.05, zoneShare(zones[3]).toFixed(3));
   check("dial has strong internal contrast", dialPixels.contrast > 120, String(dialPixels.contrast));
 
   const revealFace = await app.evaluate(

@@ -1,4 +1,4 @@
-const CACHE = "wavelength-v1";
+const CACHE = "wavelength-v2";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -19,8 +19,26 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
-  event.respondWith(
-    caches.match(event.request).then((cached) => cached ?? fetch(event.request)),
-  );
+  const request = event.request;
+  if (request.method !== "GET") return;
+
+  // Pages go to the network first, so a player who already installed the app
+  // still gets each new build. The cache only covers starting without a network.
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE).then((cache) => cache.put(request, copy)).catch(() => {});
+          return response;
+        })
+        .catch(async () => {
+          const cached = (await caches.match(request)) ?? (await caches.match("./index.html"));
+          return cached ?? new Response("Offline", { status: 503, headers: { "content-type": "text/plain" } });
+        }),
+    );
+    return;
+  }
+
+  event.respondWith(caches.match(request).then((cached) => cached ?? fetch(request)));
 });

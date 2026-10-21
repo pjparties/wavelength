@@ -31,11 +31,13 @@ manifest and service worker also make it installable and cache the app for later
 5. **Reveal** — the target zone shows up and points are awarded to the team.
 
 Turns rotate team by team. The turn timer sits top right with a pause button and ticks
-in the last ten seconds. The match survives a page reload. The ⚙ button shows the card pool
-stats, the sound switch and aborts the match.
+in the last ten seconds; it only runs while the psychic is looking and the team is guessing,
+so the reveal and the pass never eat the clock. The match and its clock survive a page
+reload. The ⚙ button shows the card pool and the decks in play, the sound switch, and aborts
+the match.
 
-The look is fixed: one Warm Earth theme (cream paper, ink borders, offset retro buttons,
-paper grain) with an ASCII diwali backdrop.
+The look is fixed: one warm diwali theme (cream paper, ink borders, offset retro buttons,
+paper grain, marigold and saffron zones) with an ASCII diwali backdrop.
 
 ## Custom spectra
 
@@ -56,6 +58,7 @@ Custom spectra either play first or shuffle into the deck.
 | `src/App.tsx` | screens, timer, persistence, wiring |
 | `src/setup.tsx` | match setup screen + validation |
 | `src/dial.tsx` | SVG spectrum dial, needle drag, zone wedges |
+| `src/sheet.tsx` | the modal sheet: focus stays inside it and Escape closes it |
 | `src/game.ts` | the domain: scoring, deck building, custom parsing, validation, the state machine (no React) |
 | `src/types.ts` | shared domain types (`Spectrum`, `SetupConfig`, `Match`, `DeckSource`) |
 | `src/dto.ts` | the wire contract with a backend (`SpectrumDTO`, `DeckDTO`, parsers) |
@@ -63,7 +66,7 @@ Custom spectra either play first or shuffle into the deck.
 | `src/decks.ts` | Clean, Spicy, and Dirty spectra — the file to edit to change the questions |
 | `src/audio.ts` | Web Audio click/lock/reveal/miss/tick sounds |
 | `src/diwali.ts` | the ASCII diwali backdrop, as a tiled SVG |
-| `src/theme.css` | Tailwind v4 tokens, the Warm Earth theme, paper grain, retro buttons |
+| `src/theme.css` | Tailwind v4 tokens, the diwali theme, the sheet, paper grain, retro buttons |
 
 ## Questions from a backend
 

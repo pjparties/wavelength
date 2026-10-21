@@ -29,12 +29,17 @@ export function toSpectrumDTO(spectrum: Spectrum): SpectrumDTO {
   return { left: spectrum.left, right: spectrum.right };
 }
 
-/** Wire -> domain. A row without both poles comes back as null and is skipped. */
+/** Longer than any question: a row this size is a backend bug, not a card. */
+const MAX_POLE_LENGTH = 120;
+
+/** Wire -> domain. A row without two short, string poles comes back as null and is skipped. */
 export function parseSpectrum(dto: unknown): Spectrum | null {
   const { left, right } = (dto ?? {}) as SpectrumDTO;
-  const a = String(left ?? "").trim();
-  const b = String(right ?? "").trim();
-  return a && b ? { left: a, right: b } : null;
+  if (typeof left !== "string" || typeof right !== "string") return null;
+  const a = left.trim();
+  const b = right.trim();
+  if (!a || !b || a.length > MAX_POLE_LENGTH || b.length > MAX_POLE_LENGTH) return null;
+  return { left: a, right: b };
 }
 
 /**
@@ -54,10 +59,13 @@ export function parseSpectrumList(body: unknown): Spectrum[] {
 export function parseDeckList(body: unknown): DeckDTO[] {
   const decks = Array.isArray(body) ? body : (body as DeckListDTO)?.decks;
   if (!Array.isArray(decks)) throw new Error("expected a list of decks");
+  // Duplicate ids would mean duplicate React keys and the same deck loaded twice.
+  const seen = new Set<string>();
   return decks.flatMap((deck) => {
     const { id, label, size } = (deck ?? {}) as DeckDTO;
     const deckId = String(id ?? "").trim();
-    if (!deckId) return [];
+    if (!deckId || seen.has(deckId)) return [];
+    seen.add(deckId);
     const deckLabel = String(label ?? deckId).trim() || deckId;
     const count = Number(size);
     return [{ id: deckId, label: deckLabel, ...(Number.isFinite(count) ? { size: count } : {}) }];
