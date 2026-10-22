@@ -312,8 +312,8 @@ export function validateSetup(config: SetupConfig): SetupErrors {
   if (config.decks.length === 0 && config.custom.length === 0) {
     errors.decks = "Pick a deck or add custom spectra";
   }
-  if (!Number.isInteger(config.maxSkipsPerTeam) || config.maxSkipsPerTeam < 0 || config.maxSkipsPerTeam > 10) {
-    errors.maxSkipsPerTeam = "Max skips must be between 0 and 10";
+  if (!Number.isInteger(config.maxSkipsPerTeam) || config.maxSkipsPerTeam < 0 || config.maxSkipsPerTeam > 100) {
+    errors.maxSkipsPerTeam = "Max skips must be between 0 and 100";
   }
   if (config.targetScore !== null) {
     const max = config.rounds * 4;
