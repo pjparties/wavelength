@@ -23,7 +23,7 @@ try {
     const target = await app.evaluate(
       "JSON.parse(localStorage.getItem('wavelength.match.v1')).targetAngle",
     );
-    // aim exactly at the target -> must score 5
+    // aim exactly at the target -> must score 4
     await app.evaluate(`(() => {
       const svg = document.querySelector('svg[aria-label="Spectrum dial"]');
       const r = svg.getBoundingClientRect();
@@ -51,7 +51,7 @@ try {
       const badge = document.body.innerText.match(/\\+(\\d)/);
       return { badge: badge ? Number(badge[1]) : null, scores: raw.teams.map((t) => t.score), turn: raw.turnIndex };
     })()`);
-    const expected = diff <= 5 ? 5 : diff <= 13.5 ? 3 : diff <= 22.5 ? 1 : 0;
+    const expected = diff <= 5 ? 4 : diff <= 13.5 ? 3 : diff <= 22.5 ? 2 : 0;
     const teamSlot = result.turn % result.scores.length;
     const delta = result.scores[teamSlot] - beforeScores[teamSlot];
     check(
@@ -92,7 +92,7 @@ try {
     const badge = document.body.innerText.match(/\\+(\\d)/);
     return { badge: badge ? Number(badge[1]) : null, scores: raw.teams.map((t) => t.score) };
   })()`);
-  const missExpected = missDiff <= 22.5 ? (missDiff <= 13.5 ? 3 : 1) : 0;
+  const missExpected = missDiff <= 22.5 ? (missDiff <= 13.5 ? 3 : 2) : 0;
   check(
     `deliberate miss: needle ${missAngle.toFixed(1)} vs target ${target2.toFixed(1)} scores ${missExpected}`,
     missResult.badge === missExpected,

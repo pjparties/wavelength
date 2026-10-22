@@ -39,13 +39,13 @@ function setupConfig(patch: Partial<SetupConfig> = {}): SetupConfig {
   };
 }
 
-test("score zones: 5 / 3 / 1 / 0", () => {
-  assert.equal(scoreFor(90, 90), 5);
-  assert.equal(scoreFor(90 + 5, 90), 5);
+test("score zones: 4 / 3 / 2 / 0", () => {
+  assert.equal(scoreFor(90, 90), 4);
+  assert.equal(scoreFor(90 + 5, 90), 4);
   assert.equal(scoreFor(90 + 5.1, 90), 3);
   assert.equal(scoreFor(90 + 13.5, 90), 3);
-  assert.equal(scoreFor(90 + 13.6, 90), 1);
-  assert.equal(scoreFor(90 + 22.5, 90), 1);
+  assert.equal(scoreFor(90 + 13.6, 90), 2);
+  assert.equal(scoreFor(90 + 22.5, 90), 2);
   assert.equal(scoreFor(90 + 22.6, 90), 0);
   assert.equal(scoreFor(50, 90), 0);
 });
@@ -252,9 +252,9 @@ test("setup validation enforces the target points rule", () => {
   };
   assert.deepEqual(validateSetup(base), {});
 
-  // max_rounds * 5 = 20
-  assert.equal(validateSetup({ ...base, targetScore: 20 }).targetScore, undefined);
-  assert.ok(validateSetup({ ...base, targetScore: 21 }).targetScore);
+  // max_rounds * 4 = 16
+  assert.equal(validateSetup({ ...base, targetScore: 16 }).targetScore, undefined);
+  assert.ok(validateSetup({ ...base, targetScore: 17 }).targetScore);
   assert.ok(validateSetup({ ...base, targetScore: 0 }).targetScore);
   assert.ok(validateSetup({ ...base, targetScore: -3 }).targetScore);
 
@@ -379,22 +379,22 @@ test("a reveal scores the team on turn, next rotates, and the last turn ends the
   const end = reducer(
     reducer(
       reducer(reducer(next, { type: "pass" }), { type: "guess" }),
-      { type: "reveal", points: 5 },
+      { type: "reveal", points: 4 },
     ),
     { type: "next" },
   )!;
-  assert.deepEqual(end.teams.map((team) => team.score), [3, 5]);
+  assert.deepEqual(end.teams.map((team) => team.score), [3, 4]);
   assert.equal(end.phase, "gameover", "two teams, one round each: that is the match");
 });
 
 test("reaching the target score names the winner and ends the match", () => {
-  const match = buildMatch(setupConfig({ targetScore: 5, rounds: 3 }), [
+  const match = buildMatch(setupConfig({ targetScore: 4, rounds: 3 }), [
     { left: "a", right: "b" },
     { left: "c", right: "d" },
   ]);
   const won = reducer(
     reducer(reducer(match, { type: "pass" }), { type: "guess" }),
-    { type: "reveal", points: 5 },
+    { type: "reveal", points: 4 },
   )!;
   assert.equal(won.winner, "A");
   assert.equal(reducer(won, { type: "next" })!.phase, "gameover");
@@ -428,7 +428,7 @@ test("the target zones are clipped to the scale, so an end shows half", () => {
   assert.equal(zoneBands(90).length, 5, "away from the ends all five bands show");
   assert.deepEqual(
     zoneBands(0).map((band) => band.points),
-    [5, 3, 1],
+    [4, 3, 2],
     "the edge cuts the bullseye in half and keeps it",
   );
 });

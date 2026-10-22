@@ -23,9 +23,9 @@ function wedgePath(from: number, to: number): string {
 const HALF_CIRCLE = `M ${CX - R} ${CY} A ${R} ${R} 0 0 1 ${CX + R} ${CY} Z`;
 
 const BAND_FILL: Record<number, string> = {
-  1: "var(--zone-1)",
+  2: "var(--zone-1)",
   3: "var(--zone-3)",
-  5: "var(--zone-5)",
+  4: "var(--zone-5)",
 };
 
 export type DialProps = {

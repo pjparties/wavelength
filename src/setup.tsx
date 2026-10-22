@@ -10,6 +10,7 @@ import {
 import type { SetupConfig, SetupErrors } from "./types.ts";
 import type { DeckSource } from "./types.ts";
 import Sheet from "./sheet.tsx";
+import { GearIcon } from "./icons.tsx";
 import { BUTTON_ARIA, BUTTON_TEXT } from "./ui-copy.ts";
 
 export type SetupScreenProps = {
@@ -63,8 +64,8 @@ export default function SetupScreen({
     { name: TEAM_NAMES[1], color: TEAM_PALETTE[1] },
   ]);
   const [roundsText, setRoundsText] = useState("5");
-  const [psychicSeconds, setPsychicSeconds] = useState(60);
-  const [guessSeconds, setGuessSeconds] = useState(45);
+  const [psychicSeconds, setPsychicSeconds] = useState(90);
+  const [guessSeconds, setGuessSeconds] = useState(90);
   const [decks, setDecks] = useState<string[]>(["clean"]);
   const [useCustom, setUseCustom] = useState(false);
   const [customText, setCustomText] = useState("");
@@ -131,12 +132,12 @@ export default function SetupScreen({
         </div>
         <button
           type="button"
-          className="btn btn-sm"
+          className="btn grid h-11 w-11 shrink-0 place-items-center p-0"
             data-testid="setup-settings"
           aria-label={BUTTON_ARIA.settings}
           onClick={() => setSettingsOpen(true)}
         >
-          ⚙
+          <GearIcon className="h-7 w-7" />
         </button>
       </header>
 
@@ -310,7 +311,7 @@ export default function SetupScreen({
               <h3 className="mb-3 text-xs font-bold uppercase tracking-widest opacity-60">Rules</h3>
               <Field
                 label="Target points (optional)"
-                hint={`First team to reach it wins. Max ${rounds * 5} points (${rounds} round${rounds === 1 ? "" : "s"} x 5).`}
+                hint={`First team to reach it wins. Max ${rounds * 4} points (${rounds} round${rounds === 1 ? "" : "s"} x 4).`}
                 error={showErrors ? errors.targetScore : undefined}
               >
                 <input

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import Dial from "./dial.tsx";
+import { GearIcon } from "./icons.tsx";
 import SetupScreen from "./setup.tsx";
 import Sheet from "./sheet.tsx";
 import { apiBaseUrl, defaultDeckSources, loadDeck, loadRemoteDeckSources } from "./deck-source.ts";
@@ -45,11 +46,11 @@ function loadMatch(): Match | null {
     const parsed = JSON.parse(raw) as Match & { turnSeconds?: number };
     if (!parsed?.teams?.length || !parsed.deck?.length) return null;
     // matches saved before the two timers existed
-    const psychicSeconds = parsed.psychicSeconds ?? parsed.turnSeconds ?? 60;
+    const psychicSeconds = parsed.psychicSeconds ?? parsed.turnSeconds ?? 90;
     return {
       ...parsed,
       psychicSeconds,
-      guessSeconds: parsed.guessSeconds ?? parsed.turnSeconds ?? 45,
+      guessSeconds: parsed.guessSeconds ?? parsed.turnSeconds ?? 90,
       maxSkipsPerTeam: parsed.maxSkipsPerTeam ?? DEFAULT_MAX_SKIPS,
       skipsUsed: parsed.skipsUsed ?? parsed.teams.map(() => 0),
       cardIndex: parsed.cardIndex ?? parsed.turnIndex,
@@ -63,16 +64,16 @@ function loadMatch(): Match | null {
 }
 
 const POINTS_LABEL: Record<number, string> = {
-  5: "Bullseye!",
+  4: "Bullseye!",
   3: "Close!",
-  1: "Near miss",
+  2: "Near miss",
   0: "Miss",
 };
 
 const POINTS_COLOR: Record<number, string> = {
-  5: "var(--zone-5)",
+  4: "var(--zone-5)",
   3: "var(--zone-3)",
-  1: "var(--zone-1)",
+  2: "var(--zone-1)",
   0: "var(--zone-0)",
 };
 
@@ -83,7 +84,7 @@ export default function App() {
   const [easyMode, setEasyMode] = useState(() => safeGet(EASY_KEY) === "on");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [homePromptOpen, setHomePromptOpen] = useState(false);
-  const [remaining, setRemaining] = useState(() => match?.remainingMs ?? 60_000);
+  const [remaining, setRemaining] = useState(() => match?.remainingMs ?? 90_000);
   const [paused, setPaused] = useState(false);
   const deadlineRef = useRef(0);
   const leftRef = useRef(remaining);
@@ -313,20 +314,20 @@ export default function App() {
         <div className="match-shell mx-auto flex items-center justify-between gap-2 px-3 py-2">
           <button
             type="button"
-            className="title shrink-0 text-sm tracking-wide"
+            className="title shrink-0 text-lg leading-none tracking-wide sm:text-lg"
             data-testid="home"
             aria-label={BUTTON_ARIA.home}
             onClick={() => setHomePromptOpen(true)}
           >
             WAVELENGTH
           </button>
-          <div className="flex min-w-0 items-center gap-2">
+          <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
             <span
               className="h-3 w-3 shrink-0 rounded-full border border-line"
               style={{ background: team.color }}
             />
             <span className="truncate text-sm font-black uppercase">{team.name}</span>
-            <span className="mono-num shrink-0 text-xs opacity-60">
+            <span className="mono-num hidden shrink-0 text-xs opacity-60 sm:inline">
               {turnIndex + 1}/{turns}
             </span>
             <span
@@ -338,7 +339,7 @@ export default function App() {
             </span>
             <button
               type="button"
-              className="btn btn-sm shrink-0"
+              className="btn grid h-11 w-11 shrink-0 place-items-center p-0 text-xl leading-none"
               data-testid="toggle-timer"
               onClick={togglePause}
               aria-label={paused ? BUTTON_ARIA.resumeTimer : BUTTON_ARIA.pauseTimer}
@@ -347,12 +348,12 @@ export default function App() {
             </button>
             <button
               type="button"
-              className="btn btn-sm shrink-0"
+              className="btn grid h-11 w-11 shrink-0 place-items-center p-0"
               data-testid="settings"
               onClick={() => setSettingsOpen(true)}
               aria-label={BUTTON_ARIA.settings}
             >
-              ⚙
+              <GearIcon className="h-7 w-7" />
             </button>
           </div>
         </div>

@@ -2,7 +2,7 @@
 
 A single-file, offline Wavelength game for 2–8 teams on one phone or tablet.
 The Psychic peeks at the spectrum and the secret target, the team slides the needle,
-and the target zone reveals itself: **5** green bullseye, **3** ochre, **1** burnt orange, **0** grey.
+and the target zone reveals itself: **4** green bullseye, **3** ochre, **2** burnt orange, **0** grey.
 The needle never leaves the 0–10 scale.
 
 ## Run it

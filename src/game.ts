@@ -33,11 +33,11 @@ export type ZoneBand = { from: number; to: number; points: number };
  */
 export function zoneBands(target: number): ZoneBand[] {
   return [
-    { from: target - ZONE_OUTER, to: target - ZONE_INNER, points: 1 },
+    { from: target - ZONE_OUTER, to: target - ZONE_INNER, points: 2 },
     { from: target - ZONE_INNER, to: target - ZONE_CORE, points: 3 },
-    { from: target - ZONE_CORE, to: target + ZONE_CORE, points: 5 },
+    { from: target - ZONE_CORE, to: target + ZONE_CORE, points: 4 },
     { from: target + ZONE_CORE, to: target + ZONE_INNER, points: 3 },
-    { from: target + ZONE_INNER, to: target + ZONE_OUTER, points: 1 },
+    { from: target + ZONE_INNER, to: target + ZONE_OUTER, points: 2 },
   ]
     .map((band) => ({
       ...band,
@@ -134,9 +134,9 @@ export function drawTarget(
 /** Points for a needle at `needle` against a target at `target`. */
 export function scoreFor(needle: number, target: number): number {
   const diff = Math.abs(needle - target);
-  if (diff <= ZONE_CORE) return 5;
+  if (diff <= ZONE_CORE) return 4;
   if (diff <= ZONE_INNER) return 3;
-  if (diff <= ZONE_OUTER) return 1;
+  if (diff <= ZONE_OUTER) return 2;
   return 0;
 }
 
@@ -316,11 +316,11 @@ export function validateSetup(config: SetupConfig): SetupErrors {
     errors.maxSkipsPerTeam = "Max skips must be between 0 and 10";
   }
   if (config.targetScore !== null) {
-    const max = config.rounds * 5;
+    const max = config.rounds * 4;
     if (!Number.isInteger(config.targetScore) || config.targetScore <= 0) {
       errors.targetScore = "Target points must be greater than 0";
     } else if (config.targetScore > max) {
-      errors.targetScore = `Target points cannot exceed ${max} (${config.rounds} rounds x 5 points)`;
+      errors.targetScore = `Target points cannot exceed ${max} (${config.rounds} rounds x 4 points)`;
     }
   }
   return errors;

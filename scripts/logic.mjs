@@ -28,15 +28,15 @@ try {
   // ---- an empty rounds field means one round ----
   await app.setValueId("rounds", "");
   check("an empty rounds field implies one round",
-    (await app.text()).includes("(1 round x 5)"), (await app.text()).slice(0, 160));
+    (await app.text()).includes("(1 round x 4)"), (await app.text()).slice(0, 160));
 
-  // ---- validation: target points > rounds * 5 is rejected ----
+  // ---- validation: target points > rounds * 4 is rejected ----
   await app.setValueId("rounds", "1"); // rounds per team = 1
-  await app.setValueId("target-score", "6"); // 6 > 1 * 5
+  await app.setValueId("target-score", "5"); // 5 > 1 * 4
   await app.clickId("start-match");
   const invalid = await app.text();
-  check("target points above rounds x 5 blocks the start",
-    invalid.includes("cannot exceed 5") && invalid.includes("start match"), invalid.slice(0, 140));
+  check("target points above rounds x 4 blocks the start",
+    invalid.includes("cannot exceed 4") && invalid.includes("start match"), invalid.slice(0, 140));
   check("invalid setup keeps you on the setup screen", invalid.includes("teams"));
 
   // ---- target points of 0 is rejected ----
@@ -44,8 +44,8 @@ try {
   await app.clickId("start-match");
   check("target points of 0 is rejected", (await app.text()).includes("greater than 0"));
 
-  // ---- valid target score of 5 with 1 round is accepted ----
-  await app.setValueId("target-score", "5");
+  // ---- no target score: a lucky bullseye must not end the match early ----
+  await app.setValueId("target-score", "");
   // custom spectrum, dirty-only deck
   await app.clickId("deck-custom");
   await app.setValueId("custom-spectra", "Total Cringe : Pure Masterpiece");
