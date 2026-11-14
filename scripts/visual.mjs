@@ -159,39 +159,63 @@ try {
   );
   check("the reveal face shows the miss zone", revealFace === "miss", String(revealFace));
 
-  // ---------- landscape phone: the same screen reflows, it does not collapse ----------
-  await app.viewport(844, 390);
-  const landscape = await app.evaluate(`(() => {
+  // ---------- phone: spectrum on top, buttons and scoreboard underneath ----------
+  const stackOf = async () => app.evaluate(`(() => {
     const box = (sel) => {
       const el = document.querySelector(sel);
       if (!el) return null;
       const r = el.getBoundingClientRect();
       return { top: Math.round(r.top), bottom: Math.round(r.bottom), left: Math.round(r.left), right: Math.round(r.right) };
     };
+    const overlaps = (a, b) => !!a && !!b && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+    const dial = box('[data-testid="dial"]');
+    const play = box('[data-testid="play"]');
+    const score = box('[data-testid="score-panel"]');
+    const label = box('[data-testid="spectrum-card"]');
     return {
       vw: innerWidth,
       vh: innerHeight,
       docW: document.documentElement.scrollWidth,
-      dial: box('[data-testid="dial"]'),
-      play: box('[data-testid="play"]'),
-      primary: box('.match-grid .btn-primary'),
-      score: box('[data-testid="score-panel"]'),
+      dial, play, score, label,
+      labelHitsScore: overlaps(label, score),
     };
   })()`);
-  const onScreen = (b) => !!b && b.top >= 0 && b.bottom <= landscape.vh && b.left >= 0 && b.right <= landscape.vw;
-  check("landscape uses the wide screen instead of collapsing to a sliver",
-    landscape.dial.left < landscape.vw / 2 && landscape.dial.right > landscape.vw / 4,
-    JSON.stringify(landscape.dial));
-  check("landscape puts the controls beside the dial",
-    !!landscape.play && landscape.play.left >= landscape.dial.right,
-    JSON.stringify([landscape.dial, landscape.play]));
-  check("landscape keeps the dial, the lock-in button and the scoreboard on screen",
-    onScreen(landscape.dial) && onScreen(landscape.primary) && onScreen(landscape.score),
+
+  await app.viewport(390, 844);
+  const portrait = await stackOf();
+  const onScreen = (frame, b) => !!b && b.top >= 0 && b.bottom <= frame.vh + 1 && b.left >= 0 && b.right <= frame.vw + 1;
+  check("portrait puts the spectrum above the buttons",
+    portrait.dial.bottom <= portrait.play.top && portrait.play.bottom <= portrait.score.top,
+    JSON.stringify(portrait));
+  check("portrait keeps the spectrum label off the scoreboard",
+    !portrait.labelHitsScore, JSON.stringify(portrait.label));
+
+  await app.viewport(844, 390);
+  const landscape = await stackOf();
+  check("landscape puts the spectrum above the buttons and the scoreboard",
+    landscape.dial.bottom <= landscape.play.top && landscape.dial.bottom <= landscape.score.top,
     JSON.stringify(landscape));
+  check("landscape keeps the buttons and the scoreboard on screen",
+    onScreen(landscape, landscape.play) && onScreen(landscape, landscape.score),
+    JSON.stringify(landscape));
+  check("landscape keeps the spectrum label off the scoreboard",
+    !landscape.labelHitsScore, JSON.stringify([landscape.label, landscape.score]));
   check("landscape has no sideways scroll",
     landscape.docW <= landscape.vw,
     landscape.docW + " > " + landscape.vw);
   await app.shot("v4-landscape");
+
+  await app.clickId("spectrum-fullscreen");
+  const full = await app.evaluate(`(() => {
+    const el = document.querySelector('[data-testid="board"]');
+    const r = el.getBoundingClientRect();
+    return { w: Math.round(r.width), h: Math.round(r.height), vw: innerWidth, vh: innerHeight, full: el.classList.contains("spectrum-full") };
+  })()`);
+  check("full screen spectrum covers the phone",
+    full.full && full.w >= full.vw - 2 && full.h >= full.vh - 2,
+    JSON.stringify(full));
+  await app.shot("v5-spectrum-full");
+  await app.clickId("spectrum-fullscreen");
 
   console.log("\nconsole errors:", app.errors.length ? app.errors : "none");
   if (app.errors.length) process.exitCode = 1;

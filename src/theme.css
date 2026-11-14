@@ -271,11 +271,11 @@
   }
 }
 
-/* Landscape phones are height-starved and width-rich: the dial goes left, the
-   buttons and scores stack on the right, and the chrome shrinks so nothing sits
-   below the fold. Unlayered on purpose: these rules must beat the max-width in
-   the shell component and the p-4 / flex utilities on the sections. */
-@media (orientation: landscape) and (max-height: 34rem) {
+/* Phones: spectrum card on top, the turn buttons and the scoreboard pinned
+   under it. Unlayered so this beats the shell's max-width. Landscape phones
+   are wide enough that the old two-column grid let the right label fall into
+   the scoreboard, so they stack too, with a shorter dial. */
+@media (max-width: 48rem), (orientation: landscape) and (max-height: 34rem) {
   .match-shell {
     max-width: 64rem;
   }
@@ -285,12 +285,24 @@
   }
 
   .match-grid {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100dvh - 4.5rem);
+  }
+
+  .match-grid > [data-testid="play"] {
+    margin-top: auto;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 34rem) {
+  .match-grid {
     display: grid;
-    grid-template-columns: minmax(0, 43%) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
     grid-template-areas:
-      "board play"
-      "board score";
-    align-items: start;
+      "board board"
+      "play score";
+    align-content: space-between;
   }
 
   .match-grid > [data-testid="board"] {
@@ -300,17 +312,59 @@
 
   .match-grid > [data-testid="play"] {
     grid-area: play;
-    padding-block: 0.75rem;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-block: 0.3rem;
   }
 
   .match-grid > [data-testid="score-panel"] {
     grid-area: score;
     margin-bottom: 0;
-    padding-block: 0.5rem;
+    padding-block: 0.3rem;
   }
 
-  .match-grid > [data-testid="score-panel"] > div {
-    flex-direction: row;
-    gap: 0.5rem;
+  .match-grid [data-testid="dial"] {
+    display: block;
+    width: auto;
+    height: 28dvh;
+    max-width: 100%;
+    margin-inline: auto;
   }
+
+  .match-grid > [data-testid="play"] .text-5xl {
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+
+  .match-grid > [data-testid="play"] p {
+    margin-top: 0.1rem;
+  }
+
+  .match-grid > [data-testid="play"] .btn-lg {
+    margin-top: 0.35rem;
+    padding-block: 0.4rem;
+    font-size: 1rem;
+  }
+}
+
+main.match-shell:has(.spectrum-full) {
+  z-index: 50;
+}
+
+.spectrum-full {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  margin: 0;
+  border-radius: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.spectrum-full [data-testid="dial"] {
+  width: min(100%, 78dvh);
+  height: auto;
+  max-height: none;
 }

@@ -28,4 +28,6 @@ export const BUTTON_ARIA = {
   resumeTimer: "Resume timer",
   settings: "Settings",
   closeSettings: "Close settings",
+  spectrumFull: "Full screen spectrum",
+  spectrumExit: "Exit full screen",
 } as const;
