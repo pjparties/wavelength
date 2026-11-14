@@ -1,3 +1,23 @@
+/** Four corners. `exit` draws them pointing inward. */
+export function FullscreenIcon({ className, exit }: { className?: string; exit?: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden="true"
+    >
+      {exit ? (
+        <path d="M9 9H5V5M15 9h4V5M9 15H5v4M15 15h4v4" />
+      ) : (
+        <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" />
+      )}
+    </svg>
+  );
+}
+
 /** Line-art settings cog. Drawn at whatever size the caller's class sets. */
 export function GearIcon({ className }: { className?: string }) {
   return (

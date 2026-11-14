@@ -187,8 +187,28 @@ try {
   check("portrait puts the spectrum above the buttons",
     portrait.dial.bottom <= portrait.play.top && portrait.play.bottom <= portrait.score.top,
     JSON.stringify(portrait));
+  check("portrait keeps the controls directly under the spectrum",
+    portrait.play.top - portrait.label.bottom < 80,
+    JSON.stringify(portrait));
   check("portrait keeps the spectrum label off the scoreboard",
     !portrait.labelHitsScore, JSON.stringify(portrait.label));
+  const headerName = await app.evaluate(`(() => {
+    const el = document.querySelector('[data-testid="home"]').nextElementSibling.querySelector(".truncate");
+    return { text: el.textContent, cut: el.scrollWidth > el.clientWidth + 1 };
+  })()`);
+  check("portrait header shows the team name",
+    headerName.text === "Starks" && !headerName.cut, JSON.stringify(headerName));
+  const poles = await app.evaluate(`(() => {
+    const board = document.querySelector('[data-testid="board"]').getBoundingClientRect();
+    return [...document.querySelectorAll('[data-testid="spectrum-card"] p')].map((p) => {
+      const r = p.getBoundingClientRect();
+      return { text: p.textContent.trim(), left: Math.round(r.left), right: Math.round(r.right), boardRight: Math.round(board.right) };
+    });
+  })()`);
+  check("portrait keeps both spectrum labels inside the card",
+    poles.length === 2 && poles.every((p) => p.left >= 0 && p.right <= p.boardRight + 1),
+    JSON.stringify(poles));
+  await app.shot("v6-portrait");
 
   await app.viewport(844, 390);
   const landscape = await stackOf();

@@ -271,11 +271,11 @@
   }
 }
 
-/* Phones: spectrum card on top, the turn buttons and the scoreboard pinned
-   under it. Unlayered so this beats the shell's max-width. Landscape phones
-   are wide enough that the old two-column grid let the right label fall into
-   the scoreboard, so they stack too, with a shorter dial. */
-@media (max-width: 48rem), (orientation: landscape) and (max-height: 34rem) {
+/* Three layouts, and only the one that matches:
+   - portrait and desktop: normal column, spectrum then controls then score
+   - short landscape: spectrum across the top, controls and score on the bottom row
+   - .spectrum-full: the dial covers the screen (rule below, higher specificity) */
+@media (orientation: landscape) and (max-height: 34rem) {
   .match-shell {
     max-width: 64rem;
   }
@@ -284,18 +284,6 @@
     padding-block: 0.5rem;
   }
 
-  .match-grid {
-    display: flex;
-    flex-direction: column;
-    min-height: calc(100dvh - 4.5rem);
-  }
-
-  .match-grid > [data-testid="play"] {
-    margin-top: auto;
-  }
-}
-
-@media (orientation: landscape) and (max-height: 34rem) {
   .match-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);

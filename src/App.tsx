@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
-import Dial from "./dial.tsx";
-import { GearIcon } from "./icons.tsx";
 import SetupScreen from "./setup.tsx";
-import Sheet from "./sheet.tsx";
 import { apiBaseUrl, defaultDeckSources, loadDeck, loadRemoteDeckSources } from "./deck-source.ts";
 import { playSfx, setSoundEnabled } from "./audio.ts";
-import { BUTTON_ARIA, BUTTON_TEXT } from "./ui-copy.ts";
+import { BUTTON_TEXT } from "./ui-copy.ts";
 import {
   buildMatch,
   DEFAULT_MAX_SKIPS,
@@ -16,6 +13,11 @@ import {
   toScale,
   totalTurns,
 } from "./game.ts";
+import { LeaveMatchSheet, SettingsSheet } from "./match/match-sheets.tsx";
+import { MatchHeader } from "./match/match-header.tsx";
+import { PlayPanel } from "./match/play-panel.tsx";
+import { ScorePanel } from "./match/score-panel.tsx";
+import { SpectrumBoard } from "./match/spectrum-board.tsx";
 import type { DeckSource, Match, SetupConfig } from "./types.ts";
 
 const MATCH_KEY = "wavelength.match.v1";
@@ -63,20 +65,6 @@ function loadMatch(): Match | null {
   }
 }
 
-const POINTS_LABEL: Record<number, string> = {
-  4: "Bullseye!",
-  3: "Close!",
-  2: "Near miss",
-  0: "Miss",
-};
-
-const POINTS_COLOR: Record<number, string> = {
-  4: "var(--zone-5)",
-  3: "var(--zone-3)",
-  2: "var(--zone-1)",
-  0: "var(--zone-0)",
-};
-
 export default function App() {
   const [match, dispatch] = useReducer(reducer, null, loadMatch);
   const [soundOn, setSoundOn] = useState(() => safeGet(SOUND_KEY) !== "off");
@@ -98,19 +86,9 @@ export default function App() {
   const lastTick = useRef<number | null>(null);
   const lastTickSecond = useRef<number | null>(null);
   const [starting, setStarting] = useState(false);
-  const [spectrumFull, setSpectrumFull] = useState(false);
-  const boardRef = useRef<HTMLElement>(null);
   const [startError, setStartError] = useState<string | null>(null);
   const sources = useMemo(() => defaultDeckSources(), []);
   const [remoteSources, setRemoteSources] = useState<DeckSource[]>([]);
-
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSpectrumFull(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
 
   // A configured backend adds its decks next to the built-in ones.
   useEffect(() => {
@@ -268,21 +246,6 @@ export default function App() {
     resetTimer(match.psychicSeconds);
   };
 
-  const chips = useMemo(() => {
-    if (!match || match.lastPoints === null || match.phase !== "reveal") return [];
-    const points = match.lastPoints;
-    const count = Math.min(12, points * 3);
-    return Array.from({ length: count }, (_, index) => {
-      const seed = points * 37 + match.turnIndex * 91 + index * 53;
-      return {
-        left: `${8 + (seed % 78)}%`,
-        top: `${15 + ((seed * 7) % 45)}%`,
-        delay: ((seed % 60) / 100).toFixed(2),
-        key: index,
-      };
-    });
-  }, [match]);
-
   if (!match) {
     return (
       <div className="paper-texture min-h-dvh bg-paper text-ink">
@@ -320,54 +283,17 @@ export default function App() {
         aria-hidden="true"
         data-testid="diwali-bg"
       />
-      <header className="sticky top-0 z-30 border-b-2 border-line bg-paper/95 backdrop-blur">
-        <div className="match-shell mx-auto flex items-center justify-between gap-2 px-3 py-2">
-          <button
-            type="button"
-            className="title shrink-0 text-lg leading-none tracking-wide sm:text-lg"
-            data-testid="home"
-            aria-label={BUTTON_ARIA.home}
-            onClick={() => setHomePromptOpen(true)}
-          >
-            WAVELENGTH
-          </button>
-          <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
-            <span
-              className="h-3 w-3 shrink-0 rounded-full border border-line"
-              style={{ background: team.color }}
-            />
-            <span className="truncate text-sm font-black uppercase">{team.name}</span>
-            <span className="mono-num hidden shrink-0 text-xs opacity-60 sm:inline">
-              {turnIndex + 1}/{turns}
-            </span>
-            <span
-              className={`mono-num rounded-md border-2 border-line px-2 py-0.5 text-sm font-bold ${
-                timedOut ? "timer-urgent" : ""
-              }`}
-            >
-              {formatClock(remaining)}
-            </span>
-            <button
-              type="button"
-              className="btn grid h-11 w-11 shrink-0 place-items-center p-0 text-xl leading-none"
-              data-testid="toggle-timer"
-              onClick={togglePause}
-              aria-label={paused ? BUTTON_ARIA.resumeTimer : BUTTON_ARIA.pauseTimer}
-            >
-              {paused ? "▶" : "❚❚"}
-            </button>
-            <button
-              type="button"
-              className="btn grid h-11 w-11 shrink-0 place-items-center p-0"
-              data-testid="settings"
-              onClick={() => setSettingsOpen(true)}
-              aria-label={BUTTON_ARIA.settings}
-            >
-              <GearIcon className="h-7 w-7" />
-            </button>
-          </div>
-        </div>
-      </header>
+      <MatchHeader
+        teamName={team.name}
+        teamColor={team.color}
+        turnLabel={`${turnIndex + 1}/${turns}`}
+        clock={formatClock(remaining)}
+        urgent={timedOut}
+        paused={paused}
+        onHome={() => setHomePromptOpen(true)}
+        onTogglePause={togglePause}
+        onOpenSettings={() => setSettingsOpen(true)}
+      />
 
       <main className="match-shell relative z-10 mx-auto px-4 pb-4 pt-4">
         {match.phase === "psychic_pass" ? (
@@ -397,368 +323,70 @@ export default function App() {
           </div>
         ) : (
           <div className="match-grid">
-            <section
-              ref={boardRef}
-              className={`card relative mb-3 p-3 ${spectrumFull ? "spectrum-full" : ""}`}
-              data-testid="board"
-            >
-              <button
-                type="button"
-                className="btn absolute right-2 top-2 z-10 grid h-9 w-9 place-items-center p-0"
-                data-testid="spectrum-fullscreen"
-                aria-label={spectrumFull ? BUTTON_ARIA.spectrumExit : BUTTON_ARIA.spectrumFull}
-                onClick={() => {
-                  const el = boardRef.current;
-                  if (!el) return;
-                  if (spectrumFull || document.fullscreenElement === el) {
-                    setSpectrumFull(false);
-                    if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
-                    return;
-                  }
-                  // iOS will not fullscreen a div; the class still covers the screen.
-                  setSpectrumFull(true);
-                  const request = el.requestFullscreen?.bind(el);
-                  if (request) void request().catch(() => {});
-                }}
-              >
-                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                  {spectrumFull ? (
-                    <path d="M9 9H5V5M15 9h4V5M9 15H5v4M15 15h4v4" />
-                  ) : (
-                    <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" />
-                  )}
-                </svg>
-              </button>
-              <Dial
-                needle={needleVisible ? match.needleAngle : null}
-                target={targetVisible ? match.targetAngle : null}
-                plainFace={match.phase === "psychic"}
-                showScale={easyMode}
-                interactive={match.phase === "guess"}
-                onChange={handleNeedle}
-              />
-              {chips.length > 0 &&
-                chips.map((chip) => (
-                  <span
-                    key={chip.key}
-                    className="points-chip text-2xl"
-                    style={{
-                      left: chip.left,
-                      top: chip.top,
-                      color: POINTS_COLOR[match.lastPoints ?? 0],
-                      animationDelay: `${chip.delay}s`,
-                    }}
-                  >
-                    +{match.lastPoints}
-                  </span>
-                ))}
-              <div className="mt-3 pt-3" data-testid="spectrum-card">
-                <div className="flex items-center gap-3">
-                  <p className="flex-1 text-center text-base font-black uppercase leading-tight sm:text-xl">
-                    {card.left}
-                  </p>
-                  <svg viewBox="0 0 120 12" className="h-3 w-24 shrink-0 sm:w-40" aria-hidden="true">
-                    <line x1="6" y1="6" x2="114" y2="6" stroke="currentColor" strokeWidth="2" />
-                    <path d="M6 1 L16 6 L6 11 Z" fill="currentColor" />
-                    <path d="M114 1 L104 6 L114 11 Z" fill="currentColor" />
-                  </svg>
-                  <p className="flex-1 text-center text-base font-black uppercase leading-tight sm:text-xl">
-                    {card.right}
-                  </p>
-                </div>
-                {match.phase === "psychic" && easyMode && (
-                  <p className="mono-num mt-3 text-center text-sm font-bold opacity-80">
-                    Target sits at {(toScale(match.targetAngle)).toFixed(1)} / 10
-                  </p>
-                )}
-                {match.phase === "guess" && easyMode && (
-                  <p className="mono-num mt-3 text-center text-sm font-bold opacity-80">
-                    Needle at {toScale(match.needleAngle).toFixed(1)} / 10
-                  </p>
-                )}
-              </div>
-            </section>
-
-            <section className="card mb-3 p-4 text-center" data-testid="play">
-              {match.phase === "psychic" && (
-                <>
-                  <p className="text-sm font-bold uppercase tracking-wide opacity-70">
-                    Give your team a clue
-                  </p>
-                  <div className="mt-3 flex gap-2">
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-lg flex-1"
-                      data-testid="hide-target"
-                      onClick={() => {
-                        playSfx("lock");
-                        dispatch({ type: "guess" });
-                        if (match) resetTimer(match.guessSeconds);
-                      }}
-                    >
-                      {BUTTON_TEXT.hideTarget}
-                    </button>
-                    {match.maxSkipsPerTeam > 0 && (
-                      <button
-                        type="button"
-                        className="btn btn-lg shrink-0"
-                        data-testid="skip"
-                        disabled={skipsLeft <= 0}
-                        onClick={() => deal("skip")}
-                        aria-label={`Skip this card, ${skipsLeft} left for ${team.name}`}
-                      >
-                        {BUTTON_TEXT.skip} ({skipsLeft})
-                      </button>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {match.phase === "guess" && (
-                <>
-                  <p className="text-sm font-bold uppercase tracking-wide opacity-70">
-                    {timedOut ? "Time! Lock in your guess" : "Drag the needle to your guess"}
-                  </p>
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-lg mt-3 w-full"
-                    data-testid="reveal"
-                    onClick={handleReveal}
-                  >
-                    {BUTTON_TEXT.lockIn}
-                  </button>
-                </>
-              )}
-
-              {match.phase === "reveal" && (
-                <>
-                  <p
-                    className={`text-5xl font-black ${match.lastPoints === 0 ? "wobble" : ""}`}
-                    style={{ color: POINTS_COLOR[match.lastPoints ?? 0] }}
-                  >
-                    +{match.lastPoints}
-                  </p>
-                  <p className="mt-1 text-lg font-black uppercase">{POINTS_LABEL[match.lastPoints ?? 0]}</p>
-                  <p className="mt-1 text-sm opacity-70">
-                    Target was at {(toScale(match.targetAngle)).toFixed(1)} / 10
-                  </p>
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-lg mt-3 w-full"
-                    data-testid="next"
-                    onClick={() => deal("next")}
-                  >
-                    {match.winner || turnIndex + 1 >= turns
-                      ? BUTTON_TEXT.seeResults
-                      : BUTTON_TEXT.nextRound}
-                  </button>
-                </>
-              )}
-
-              {match.phase === "gameover" && (
-                <>
-                  <h2 className="title text-3xl">
-                    {match.winner ? `${match.winner} wins!` : "Game over"}
-                  </h2>
-                  <div className="mt-4 flex flex-col gap-2">
-                    {[...match.teams]
-                      .sort((a, b) => b.score - a.score)
-                      .map((entry, rank) => (
-                        <div
-                          key={entry.name}
-                          className="flex items-center justify-between rounded-md border-2 border-line px-3 py-2"
-                        >
-                          <span className="flex items-center gap-2 font-bold">
-                            <span
-                              className="h-3 w-3 rounded-full border border-line"
-                              style={{ background: entry.color }}
-                            />
-                            {rank + 1}. {entry.name}
-                          </span>
-                          <span className="mono-num font-black">{entry.score}</span>
-                        </div>
-                      ))}
-                  </div>
-                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                    {lastConfig && (
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        data-testid="play-again"
-                        onClick={() => handleStart(lastConfig)}
-                      >
-                        {BUTTON_TEXT.playAgain}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className={`btn ${lastConfig ? "" : "btn-primary"}`}
-                      data-testid="new-setup"
-                      onClick={() => dispatch({ type: "abort" })}
-                    >
-                      {BUTTON_TEXT.newSetup}
-                    </button>
-                  </div>
-                </>
-              )}
-            </section>
-
+            <SpectrumBoard
+              card={card}
+              phase={match.phase}
+              easyMode={easyMode}
+              needle={match.needleAngle}
+              target={match.targetAngle}
+              showNeedle={needleVisible}
+              showTarget={targetVisible}
+              interactive={match.phase === "guess"}
+              points={match.lastPoints}
+              turnIndex={turnIndex}
+              onNeedle={handleNeedle}
+            />
+            <PlayPanel
+              match={match}
+              team={team}
+              skipsLeft={skipsLeft}
+              timedOut={timedOut}
+              turns={turns}
+              turnIndex={turnIndex}
+              lastConfig={lastConfig}
+              onHideTarget={() => {
+                playSfx("lock");
+                dispatch({ type: "guess" });
+                if (match) resetTimer(match.guessSeconds);
+              }}
+              onSkip={() => deal("skip")}
+              onReveal={handleReveal}
+              onNext={() => deal("next")}
+              onPlayAgain={() => lastConfig && handleStart(lastConfig)}
+              onNewSetup={() => dispatch({ type: "abort" })}
+            />
             {match.phase !== "gameover" && (
-              <section className="card p-4" data-testid="score-panel">
-                <h2 className="mb-2 text-xs font-bold uppercase tracking-widest opacity-60">
-                  Scoreboard
-                </h2>
-                <div className="flex flex-col gap-1 lg:flex-row lg:gap-2">
-                  {match.teams.map((entry, index) => (
-                    <div
-                      key={entry.name}
-                      className="flex flex-1 items-center justify-between gap-2 rounded-md px-2 py-1.5"
-                    >
-                      <span className="flex min-w-0 items-center gap-2 font-bold">
-                        <span
-                          className="h-3 w-3 shrink-0 rounded-full border border-line"
-                          style={{ background: entry.color }}
-                        />
-                        <span className="truncate">{entry.name}</span>
-                      </span>
-                      <span
-                        className={`mono-num shrink-0 font-black ${
-                          index === teamIndex ? "rounded-full border-2 border-line px-2 py-0.5" : ""
-                        }`}
-                      >
-                        {entry.score}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </section>
+              <ScorePanel teams={match.teams} activeIndex={teamIndex} />
             )}
           </div>
         )}
       </main>
 
       {homePromptOpen && (
-        <Sheet onClose={() => setHomePromptOpen(false)}>
-          <div className="card w-full p-5">
-            <h2 className="title text-2xl">Leave the match?</h2>
-            <p className="mt-2 text-sm opacity-70">
-              The match ends here and the scores are lost. You can start a new one from the
-              home screen.
-            </p>
-            <div className="mt-5 grid gap-2 sm:grid-cols-2">
-              <button
-                type="button"
-                className="btn"
-                data-testid="home-cancel"
-                onClick={() => setHomePromptOpen(false)}
-              >
-                {BUTTON_TEXT.keepPlaying}
-              </button>
-              <button
-                type="button"
-                className="btn btn-danger"
-                data-testid="home-confirm"
-                onClick={() => {
-                  setHomePromptOpen(false);
-                  dispatch({ type: "abort" });
-                }}
-              >
-                {BUTTON_TEXT.leaveMatch}
-              </button>
-            </div>
-          </div>
-        </Sheet>
+        <LeaveMatchSheet
+          onStay={() => setHomePromptOpen(false)}
+          onLeave={() => {
+            setHomePromptOpen(false);
+            dispatch({ type: "abort" });
+          }}
+        />
       )}
 
       {settingsOpen && (
-        <Sheet onClose={() => setSettingsOpen(false)}>
-          <div className="card w-full p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-xl font-black uppercase tracking-wide">Settings</h2>
-              <button
-                type="button"
-                className="btn btn-sm"
-                data-testid="close-settings"
-                onClick={() => setSettingsOpen(false)}
-                aria-label={BUTTON_ARIA.closeSettings}
-              >
-                ✕
-              </button>
-            </div>
-
-            <h3 className="mb-2 text-xs font-bold uppercase tracking-widest opacity-60">Sound</h3>
-            <button
-              type="button"
-              className={`btn btn-sm w-full ${soundOn ? "btn-primary" : ""}`}
-              data-testid="toggle-sound"
-              onClick={() => setSoundOn((value) => !value)}
-            >
-              {soundOn ? `✓ ${BUTTON_TEXT.soundOn}` : BUTTON_TEXT.soundOff}
-            </button>
-
-            <h3 className="mb-2 mt-4 text-xs font-bold uppercase tracking-widest opacity-60">
-              Difficulty
-            </h3>
-            <button
-              type="button"
-              className={`btn btn-sm w-full ${easyMode ? "btn-primary" : ""}`}
-              data-testid="toggle-easy"
-              onClick={() => setEasyMode((value) => !value)}
-            >
-              {easyMode ? `✓ ${BUTTON_TEXT.easyMode}` : BUTTON_TEXT.hardMode}
-            </button>
-            <p className="mt-1 text-xs opacity-60">
-              Easy mode puts the 0-10 scale back on the dial and shows where the needle and
-              the target sit.
-            </p>
-
-            <h3 className="mb-2 mt-4 text-xs font-bold uppercase tracking-widest opacity-60">
-              Card pool
-            </h3>
-            <dl className="mono-num flex flex-col gap-1 text-sm">
-              {allSources.map((source) => (
-                <div key={source.id} className="flex justify-between">
-                  <dt className="opacity-70">{source.label} deck</dt>
-                  <dd>{source.size ?? "remote"}</dd>
-                </div>
-              ))}
-              <div className="flex justify-between">
-                <dt className="opacity-70">Decks in this match</dt>
-                <dd>
-                  {match.deckIds
-                    .map((id) => allSources.find((source) => source.id === id)?.label ?? id)
-                    .join(" + ") || "none"}
-                </dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="opacity-70">Custom spectra</dt>
-                <dd>{match.customCount}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="opacity-70">In this match</dt>
-                <dd>{match.deck.length}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="opacity-70">Card</dt>
-                <dd>
-                  {cardNo} / {match.deck.length}
-                </dd>
-              </div>
-            </dl>
-
-            <button
-              type="button"
-              className="btn btn-danger mt-5 w-full"
-              data-testid="abort"
-              onClick={() => {
-                setSettingsOpen(false);
-                dispatch({ type: "abort" });
-              }}
-            >
-              {BUTTON_TEXT.abortMatch}
-            </button>
-          </div>
-        </Sheet>
+        <SettingsSheet
+          match={match}
+          sources={allSources}
+          cardNo={cardNo}
+          soundOn={soundOn}
+          easyMode={easyMode}
+          onClose={() => setSettingsOpen(false)}
+          onToggleSound={() => setSoundOn((value) => !value)}
+          onToggleEasy={() => setEasyMode((value) => !value)}
+          onAbort={() => {
+            setSettingsOpen(false);
+            dispatch({ type: "abort" });
+          }}
+        />
       )}
     </div>
   );
