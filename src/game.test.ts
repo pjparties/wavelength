@@ -13,6 +13,7 @@ import {
   parseCustomSpectrum,
   parseCustomSpectra,
   reducer,
+  reshuffledDeck,
   scoreFor,
   shuffle,
   TARGET_ZONES,
@@ -189,6 +190,18 @@ test("shuffle keeps every card", () => {
   const output = shuffle(input);
   assert.equal(output.length, input.length);
   assert.deepEqual([...output].sort((a, b) => a - b), input);
+});
+
+test("the deck is reshuffled only when the next card wraps", () => {
+  const match = buildMatch(setupConfig(), [
+    { left: "a", right: "b" },
+    { left: "c", right: "d" },
+  ]);
+  assert.equal(reshuffledDeck(match), undefined);
+  const wrapped = { ...match, cardIndex: match.deck.length - 1 };
+  const next = reshuffledDeck(wrapped);
+  assert.ok(next);
+  assert.equal(next.length, wrapped.deck.length);
 });
 
 test("custom spectra parse from the documented format", () => {

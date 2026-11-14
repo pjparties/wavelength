@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "node --test src/*.test.ts",
+    "test": "node --test $(find src -name '*.test.ts')",
     "check": "tsc -b && oxlint",
     "mock-api": "node scripts/mock-api.mjs",
     "verify": "npm run build && node scripts/verify-all.mjs",

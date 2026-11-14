@@ -145,6 +145,12 @@ export function toScale(angle: number): number {
   return (angle / ARC_DEGREES) * 10;
 }
 
+/** A new deck when the next card would wrap to the start. Otherwise the deck stays. */
+export function reshuffledDeck(match: Match): Spectrum[] | undefined {
+  const wraps = match.deck.length > 0 && (match.cardIndex + 1) % match.deck.length === 0;
+  return wraps ? shuffle(match.deck) : undefined;
+}
+
 export function shuffle<T>(items: T[]): T[] {
   const out = [...items];
   for (let i = out.length - 1; i > 0; i--) {
