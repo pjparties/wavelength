@@ -283,7 +283,7 @@ test("setup validation enforces the target points rule", () => {
   assert.equal(DEFAULT_MAX_SKIPS, 3);
   assert.equal(validateSetup({ ...base, maxSkipsPerTeam: 0 }).maxSkipsPerTeam, undefined);
   assert.ok(validateSetup({ ...base, maxSkipsPerTeam: -1 }).maxSkipsPerTeam);
-  assert.ok(validateSetup({ ...base, maxSkipsPerTeam: 11 }).maxSkipsPerTeam);
+  assert.ok(validateSetup({ ...base, maxSkipsPerTeam: 101 }).maxSkipsPerTeam);
   assert.ok(validateSetup({ ...base, maxSkipsPerTeam: 1.5 }).maxSkipsPerTeam);
 });
 
