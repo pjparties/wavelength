@@ -386,7 +386,7 @@ export default function App() {
             </button>
           </div>
         ) : (
-          <>
+          <div className="match-grid">
             <section className="card relative mb-3 p-3" data-testid="board">
               <Dial
                 needle={needleVisible ? match.needleAngle : null}
@@ -438,7 +438,7 @@ export default function App() {
               </div>
             </section>
 
-            <section className="card mb-3 p-4 text-center">
+            <section className="card mb-3 p-4 text-center" data-testid="play">
               {match.phase === "psychic" && (
                 <>
                   <p className="text-sm font-bold uppercase tracking-wide opacity-70">
@@ -592,7 +592,7 @@ export default function App() {
                 </div>
               </section>
             )}
-          </>
+          </div>
         )}
       </main>
 

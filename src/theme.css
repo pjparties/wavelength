@@ -270,3 +270,47 @@
     color: var(--danger);
   }
 }
+
+/* Landscape phones are height-starved and width-rich: the dial goes left, the
+   buttons and scores stack on the right, and the chrome shrinks so nothing sits
+   below the fold. Unlayered on purpose: these rules must beat the max-width in
+   the shell component and the p-4 / flex utilities on the sections. */
+@media (orientation: landscape) and (max-height: 34rem) {
+  .match-shell {
+    max-width: 64rem;
+  }
+
+  main.match-shell {
+    padding-block: 0.5rem;
+  }
+
+  .match-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 43%) minmax(0, 1fr);
+    grid-template-areas:
+      "board play"
+      "board score";
+    align-items: start;
+  }
+
+  .match-grid > [data-testid="board"] {
+    grid-area: board;
+    margin-bottom: 0;
+  }
+
+  .match-grid > [data-testid="play"] {
+    grid-area: play;
+    padding-block: 0.75rem;
+  }
+
+  .match-grid > [data-testid="score-panel"] {
+    grid-area: score;
+    margin-bottom: 0;
+    padding-block: 0.5rem;
+  }
+
+  .match-grid > [data-testid="score-panel"] > div {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+}

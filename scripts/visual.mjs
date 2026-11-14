@@ -159,6 +159,40 @@ try {
   );
   check("the reveal face shows the miss zone", revealFace === "miss", String(revealFace));
 
+  // ---------- landscape phone: the same screen reflows, it does not collapse ----------
+  await app.viewport(844, 390);
+  const landscape = await app.evaluate(`(() => {
+    const box = (sel) => {
+      const el = document.querySelector(sel);
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { top: Math.round(r.top), bottom: Math.round(r.bottom), left: Math.round(r.left), right: Math.round(r.right) };
+    };
+    return {
+      vw: innerWidth,
+      vh: innerHeight,
+      docW: document.documentElement.scrollWidth,
+      dial: box('[data-testid="dial"]'),
+      play: box('[data-testid="play"]'),
+      primary: box('.match-grid .btn-primary'),
+      score: box('[data-testid="score-panel"]'),
+    };
+  })()`);
+  const onScreen = (b) => !!b && b.top >= 0 && b.bottom <= landscape.vh && b.left >= 0 && b.right <= landscape.vw;
+  check("landscape uses the wide screen instead of collapsing to a sliver",
+    landscape.dial.left < landscape.vw / 2 && landscape.dial.right > landscape.vw / 4,
+    JSON.stringify(landscape.dial));
+  check("landscape puts the controls beside the dial",
+    !!landscape.play && landscape.play.left >= landscape.dial.right,
+    JSON.stringify([landscape.dial, landscape.play]));
+  check("landscape keeps the dial, the lock-in button and the scoreboard on screen",
+    onScreen(landscape.dial) && onScreen(landscape.primary) && onScreen(landscape.score),
+    JSON.stringify(landscape));
+  check("landscape has no sideways scroll",
+    landscape.docW <= landscape.vw,
+    landscape.docW + " > " + landscape.vw);
+  await app.shot("v4-landscape");
+
   console.log("\nconsole errors:", app.errors.length ? app.errors : "none");
   if (app.errors.length) process.exitCode = 1;
 } catch (error) {
