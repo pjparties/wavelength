@@ -211,9 +211,16 @@ try {
     const r = el.getBoundingClientRect();
     return { w: Math.round(r.width), h: Math.round(r.height), vw: innerWidth, vh: innerHeight, full: el.classList.contains("spectrum-full") };
   })()`);
+  const fullDial = await app.evaluate(`(() => {
+    const r = document.querySelector('[data-testid="dial"]').getBoundingClientRect();
+    return { w: Math.round(r.width), h: Math.round(r.height), vw: innerWidth, vh: innerHeight };
+  })()`);
   check("full screen spectrum covers the phone",
     full.full && full.w >= full.vw - 2 && full.h >= full.vh - 2,
     JSON.stringify(full));
+  check("full screen dial fills most of the screen",
+    fullDial.h >= fullDial.vh * 0.7 && fullDial.w >= fullDial.vw * 0.5,
+    JSON.stringify(fullDial));
   await app.shot("v5-spectrum-full");
   await app.clickId("spectrum-fullscreen");
 
